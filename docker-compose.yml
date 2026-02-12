@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./app/static:/app/app/static
+      - ./app/templates:/app/app/templates
+    environment:
+      - PORT=8000
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    networks:
+      - digital-twin-network
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./app/static:/usr/share/nginx/html/static
+      - ./data:/usr/share/nginx/html/data
+    depends_on:
+      - web
+    restart: unless-stopped
+    networks:
+      - digital-twin-network
+
+networks:
+  digital-twin-network:
+    driver: bridge

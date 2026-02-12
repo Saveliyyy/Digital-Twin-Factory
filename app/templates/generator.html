@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Twin Factory - Генератор</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Навигация -->
+        <nav class="navbar">
+            <a href="/" class="navbar-brand">🏭 Digital Twin Factory</a>
+            <ul class="navbar-menu">
+                <li class="navbar-item"><a href="/">Главная</a></li>
+                <li class="navbar-item active"><a href="/generator">Генератор</a></li>
+                <li class="navbar-item"><a href="/jobs">Задачи</a></li>
+                <li class="navbar-item"><a href="/analytics">Аналитика</a></li>
+                <li class="navbar-item"><a href="/api/docs">API</a></li>
+            </ul>
+        </nav>
+
+        <!-- Заголовок -->
+        <div class="card">
+            <h1 class="card-title">🚀 Генератор медицинских данных</h1>
+            <p style="color: #6c757d;">
+                Создание реалистичных датасетов с пациентами и визитами к врачу.
+                Все данные генерируются с учетом корреляций и сезонности.
+            </p>
+        </div>
+
+        <!-- Основная форма -->
+        <div class="grid">
+            <div class="card" style="grid-column: span 2;">
+                <h2 class="card-title">⚙️ Параметры генерации</h2>
+                
+                <form id="generateForm">
+                    <div class="grid" style="grid-template-columns: 1fr 1fr;">
+                        <div class="form-group">
+                            <label class="form-label">👥 Пациенты</label>
+                            <input type="number" name="patients" id="patients" class="form-control" 
+                                   value="10000" min="100" max="100000" step="100">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">🏥 Визиты</label>
+                            <input type="number" name="visits" id="visits" class="form-control" 
+                                   value="50000" min="500" max="500000" step="500">
+                        </div>
+                    </div>
+
+                    <div class="grid" style="grid-template-columns: 1fr 1fr;">
+                        <div class="form-group">
+                            <label class="form-label">🎲 Seed</label>
+                            <input type="number" name="seed" class="form-control" value="42" min="1" max="9999">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">📁 Формат</label>
+                            <select name="format" class="form-control">
+                                <option value="json">JSON</option>
+                                <option value="parquet">Parquet</option>
+                                <option value="csv">CSV</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 15px; margin-top: 30px;">
+                        <button type="submit" class="btn btn-primary btn-lg" style="flex: 2;">
+                            ⚡ ЗАПУСТИТЬ ГЕНЕРАЦИЮ
+                        </button>
+                        <button type="button" class="btn btn-success btn-lg" style="flex: 1;" onclick="window.location.reload()">
+                            🔄 СБРОС
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Прогресс бар -->
+                <div id="progressContainer" style="display: none; margin-top: 30px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <span id="progressText" style="font-weight: 600;">Инициализация...</span>
+                        <span id="progressPercent" style="font-weight: 600; color: #4361ee;">0%</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar" id="progressBar" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <!-- Результат -->
+                <div id="resultContainer" style="display: none; margin-top: 30px;">
+                    <div class="alert alert-success">
+                        <h3 style="margin-bottom: 10px;">✅ Генерация запущена!</h3>
+                        <p id="resultMessage"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Информация о корреляциях -->
+            <div class="card">
+                <h2 class="card-title">📊 Активные корреляции</h2>
+                
+                <div style="margin-bottom: 25px;">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 15px; color: #4361ee;">📈 Диабет → BMI</h3>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 10px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span>BMI диабетиков:</span>
+                            <span style="font-weight: bold; color: #f72585;">32.1</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>BMI не-диабетиков:</span>
+                            <span style="font-weight: bold; color: #4cc9f0;">25.9</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid #dee2e6;">
+                            <span>Разница:</span>
+                            <span style="font-weight: bold; color: #4361ee;">+6.2</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 style="font-size: 1.1rem; margin-bottom: 15px; color: #4361ee;">❄️ Сезонность</h3>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 10px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span>Грипп зимой:</span>
+                            <span style="font-weight: bold; color: #4cc9f0;">41%</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Грипп летом:</span>
+                            <span style="font-weight: bold; color: #f8961e;">12%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Футер -->
+        <div class="footer">
+            <p>Digital Twin Factory © 2024 | Версия 2.0.0</p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('generateForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const patients = document.getElementById('patients').value;
+            const visits = document.getElementById('visits').value;
+            const seed = document.querySelector('input[name="seed"]').value;
+            
+            document.getElementById('progressContainer').style.display = 'block';
+            document.getElementById('resultContainer').style.display = 'none';
+            
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 2;
+                if (progress <= 100) {
+                    document.getElementById('progressBar').style.width = progress + '%';
+                    document.getElementById('progressPercent').innerHTML = progress + '%';
+                    
+                    if (progress < 20) document.getElementById('progressText').innerHTML = 'Подготовка генератора...';
+                    else if (progress < 40) document.getElementById('progressText').innerHTML = 'Генерация пациентов...';
+                    else if (progress < 60) document.getElementById('progressText').innerHTML = 'Генерация визитов...';
+                    else if (progress < 80) document.getElementById('progressText').innerHTML = 'Применение корреляций...';
+                    else if (progress < 95) document.getElementById('progressText').innerHTML = 'Сохранение результатов...';
+                    else document.getElementById('progressText').innerHTML = 'Завершение...';
+                }
+                if (progress >= 100) clearInterval(interval);
+            }, 100);
+            
+            try {
+                const response = await fetch(`/api/v1/generate/medical?patients=${patients}&visits=${visits}&seed=${seed}`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('resultContainer').style.display = 'block';
+                    document.getElementById('resultMessage').innerHTML = `✅ Задача запущена! ID: ${data.job_id.substring(0, 8)}...`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('progressContainer').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

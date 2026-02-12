@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Twin Factory - Главная</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Навигация -->
+        <nav class="navbar">
+            <a href="/" class="navbar-brand">🏭 Digital Twin Factory</a>
+            <ul class="navbar-menu">
+                <li class="navbar-item active"><a href="/">Главная</a></li>
+                <li class="navbar-item"><a href="/generator">Генератор</a></li>
+                <li class="navbar-item"><a href="/jobs">Задачи</a></li>
+                <li class="navbar-item"><a href="/analytics">Аналитика</a></li>
+                <li class="navbar-item"><a href="/api/docs">API</a></li>
+            </ul>
+        </nav>
+
+        <!-- Хедер -->
+        <div class="card fade-in">
+            <h1 class="card-title">🏭 Digital Twin Factory</h1>
+            <p style="font-size: 1.2rem; color: #6c757d; margin-bottom: 20px;">
+                Фабрика цифровых двойников — генерация синтетических данных с корреляциями
+            </p>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <span class="badge badge-primary">⚡ 10,000 записей/сек</span>
+                <span class="badge badge-success">📊 Polars + NumPy</span>
+                <span class="badge badge-primary">🔄 Граф корреляций</span>
+                <span class="badge badge-success">❄️ Сезонность</span>
+            </div>
+        </div>
+
+        <!-- Статистика -->
+        <div class="stats-grid" id="stats-container">
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-label">Всего генераций</div>
+                <div class="stat-value" id="total-generations">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-label">Сгенерировано пациентов</div>
+                <div class="stat-value" id="total-patients">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🏥</div>
+                <div class="stat-label">Сгенерировано визитов</div>
+                <div class="stat-value" id="total-visits">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⚡</div>
+                <div class="stat-label">Успешных задач</div>
+                <div class="stat-value" id="success-rate">0%</div>
+            </div>
+        </div>
+
+        <!-- Быстрый старт -->
+        <div class="grid">
+            <div class="card">
+                <h2 class="card-title">🚀 Быстрый старт</h2>
+                <p style="margin-bottom: 20px; color: #6c757d;">
+                    Сгенерируйте 10,000 пациентов и 50,000 визитов с корреляциями за 30 секунд
+                </p>
+                <a href="/generator" class="btn btn-primary btn-lg" style="width: 100%;">
+                    ⚡ Перейти к генерации
+                </a>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">📊 Аналитика</h2>
+                <p style="margin-bottom: 20px; color: #6c757d;">
+                    Просмотр корреляций, сезонности и статистики в реальном времени
+                </p>
+                <a href="/analytics" class="btn btn-success btn-lg" style="width: 100%;">
+                    📈 Перейти к аналитике
+                </a>
+            </div>
+        </div>
+
+        <!-- Корреляции -->
+        <div class="grid">
+            <div class="card">
+                <h2 class="card-title">📈 Корреляция диабет-BMI</h2>
+                <div style="display: flex; justify-content: space-around; margin-top: 20px;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 2rem; color: #f72585;">32.1</div>
+                        <div style="color: #6c757d;">BMI диабетиков</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 2rem; color: #4cc9f0;">25.9</div>
+                        <div style="color: #6c757d;">BMI не-диабетиков</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 2rem; color: #4361ee;">+6.2</div>
+                        <div style="color: #6c757d;">Разница</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">❄️ Сезонность гриппа</h2>
+                <div style="display: flex; justify-content: space-around; margin-top: 20px;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 2rem; color: #4cc9f0;">41%</div>
+                        <div style="color: #6c757d;">Зимой</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 2rem; color: #f8961e;">12%</div>
+                        <div style="color: #6c757d;">Летом</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 2rem; color: #4361ee;">3.5x</div>
+                        <div style="color: #6c757d;">Выше зимой</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Футер -->
+        <div class="footer">
+            <p>Digital Twin Factory © 2024 | Версия 2.0.0</p>
+            <p style="margin-top: 10px; font-size: 0.9rem;">
+                <span style="color: #4cc9f0;">●</span> PostgreSQL 
+                <span style="color: #f72585; margin-left: 15px;">●</span> Redis 
+                <span style="color: #4361ee; margin-left: 15px;">●</span> FastAPI
+                <span style="color: #4cc9f0; margin-left: 15px;">●</span> Polars
+            </p>
+        </div>
+    </div>
+
+    <script>
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/v1/stats');
+                const data = await response.json();
+                
+                document.getElementById('total-generations').textContent = data.total_generations || 0;
+                document.getElementById('total-patients').textContent = (data.total_patients || 0).toLocaleString();
+                document.getElementById('total-visits').textContent = (data.total_visits || 0).toLocaleString();
+                document.getElementById('success-rate').textContent = data.success_rate || '0%';
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+        
+        loadStats();
+        setInterval(loadStats, 5000);
+    </script>
+</body>
+</html>

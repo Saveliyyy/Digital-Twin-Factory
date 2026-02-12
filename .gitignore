@@ -1,0 +1,44 @@
+# Виртуальное окружение
+venv/
+env/
+.env
+.venv/
+
+# Python кэш
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Данные (игнорируем большие файлы)
+data/generated/
+data/uploads/
+*.json
+*.parquet
+*.csv
+*.db
+
+# Логи
+logs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Системные файлы
+.DS_Store
+Thumbs.db
+
+# Docker
+*.pid
+docker-compose.override.yml
+
+# Временные файлы
+tmp/
+temp/
+*.tmp
