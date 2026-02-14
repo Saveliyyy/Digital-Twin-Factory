@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход - Digital Twin Factory</title>
+    <link rel="stylesheet" href="/static/css/dark-theme.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <a href="/" class="navbar-brand">🏭 Digital Twin Factory</a>
+            <ul class="navbar-menu">
+                <li class="navbar-item"><a href="/">Главная</a></li>
+                <li class="navbar-item"><a href="/tariffs">Тарифы</a></li>
+                <li class="navbar-item active"><a href="/login">Вход</a></li>
+                <li class="navbar-item"><a href="/register">Регистрация</a></li>
+            </ul>
+        </nav>
+
+        <div style="max-width: 500px; margin: 0 auto;">
+            <div class="card">
+                <h1 class="card-title">🔐 Вход в систему</h1>
+                
+                <div id="message" class="alert" style="display: none;"></div>
+                
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label class="form-label">Имя пользователя</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Пароль</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    
+                    <div style="text-align: right; margin-bottom: 20px;">
+                        <a href="/forgot-password" style="color: var(--accent-secondary);">Забыли пароль?</a>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-block btn-lg">
+                        🚪 Войти
+                    </button>
+                </form>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <p style="color: var(--text-muted);">Нет аккаунта? <a href="/register" style="color: var(--accent-secondary);">Зарегистрироваться</a></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Digital Twin Factory © 2024 | Ваши данные в безопасности</p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const data = {
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value
+            };
+            
+            try {
+                const response = await fetch('/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Сохраняем токен
+                    localStorage.setItem('token', result.access_token);
+                    localStorage.setItem('user', JSON.stringify(result.user));
+                    
+                    showMessage('Вход выполнен успешно!', 'success');
+                    setTimeout(() => window.location.href = '/dashboard', 1500);
+                } else {
+                    showMessage(result.detail || 'Ошибка входа', 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка соединения', 'error');
+            }
+        });
+        
+        function showMessage(msg, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.style.display = 'block';
+            messageDiv.className = `alert alert-${type}`;
+            messageDiv.textContent = msg;
+        }
+    </script>
+</body>
+</html>

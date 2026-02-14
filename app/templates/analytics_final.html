@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Аналитика</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <a href="/" class="navbar-brand">🏭 Digital Twin Factory</a>
+            <ul class="navbar-menu">
+                <li class="navbar-item"><a href="/">Главная</a></li>
+                <li class="navbar-item"><a href="/generator">Генератор</a></li>
+                <li class="navbar-item"><a href="/jobs">Задачи</a></li>
+                <li class="navbar-item active"><a href="/analytics">Аналитика</a></li>
+            </ul>
+        </nav>
+
+        <div class="card">
+            <h1 class="card-title">📊 Аналитика</h1>
+            <p>Визуализация корреляций, финансовая аналитика и экспорт данных</p>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">💰 Финансовая аналитика</h2>
+            <canvas id="revenueChart" style="height: 300px; width: 100%;"></canvas>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">📈 Визуализация корреляций</h2>
+            <canvas id="correlationChart" style="height: 300px; width: 100%;"></canvas>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">📋 Экспорт данных</h2>
+            <button class="btn" onclick="exportData('json')">JSON</button>
+            <button class="btn" onclick="exportData('csv')">CSV</button>
+            <button class="btn" onclick="exportData('sql')">SQL</button>
+        </div>
+    </div>
+
+    <script>
+        // Revenue Chart
+        new Chart(document.getElementById('revenueChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Пневмония', 'Диабет', 'Гипертония', 'Грипп', 'Простуда'],
+                datasets: [{
+                    label: 'Выручка ($)',
+                    data: [350, 280, 200, 120, 80],
+                    backgroundColor: ['#f72585', '#f8961e', '#4cc9f0', '#4361ee', '#3f37c9']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+
+        // Correlation Chart
+        new Chart(document.getElementById('correlationChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Диабетики', 'Не-диабетики'],
+                datasets: [{
+                    data: [32.1, 25.9],
+                    backgroundColor: ['#f72585', '#4cc9f0']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+
+        function exportData(format) {
+            alert('Экспорт в ' + format.toUpperCase() + ' будет доступен в следующем обновлении');
+        }
+    </script>
+</body>
+</html>

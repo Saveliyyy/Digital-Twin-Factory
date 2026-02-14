@@ -1,0 +1,39 @@
+# Виртуальное окружение
+venv/
+env/
+.env
+.venv/
+
+# Данные
+data/generated/
+data/uploads/
+*.json
+*.parquet
+*.csv
+*.db
+
+# Логи
+logs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Docker
+.dockerignore
+Dockerfile
+docker-compose*.yml
+
+# Временные файлы
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python

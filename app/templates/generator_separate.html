@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Twin Factory - Генератор</title>
+    <link rel="stylesheet" href="/static/css/dark-theme.css">
+    <link rel="stylesheet" href="/static/css/theme-switcher.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Специфичные стили для генератора */
+        .generator-hero {
+            background: var(--accent-gradient);
+            padding: 40px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+            color: white;
+        }
+        
+        .generator-hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: white;
+        }
+        
+        .param-panel {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .param-group {
+            margin-bottom: 25px;
+        }
+        
+        .param-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .param-label {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .param-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--accent-primary);
+        }
+        
+        .param-slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: var(--accent-gradient);
+            -webkit-appearance: none;
+        }
+        
+        .param-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            cursor: pointer;
+            box-shadow: 0 0 15px var(--accent-primary);
+            transition: transform 0.2s;
+        }
+        
+        .param-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        
+        .param-limits {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        
+        .quick-presets {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .preset-btn {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .preset-btn:hover {
+            background: var(--accent-gradient);
+            color: white;
+            border-color: transparent;
+        }
+        
+        .stats-preview {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .stat-preview-item {
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            border-left: 4px solid var(--accent-primary);
+        }
+        
+        .stat-preview-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--accent-primary);
+        }
+        
+        .stat-preview-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+        
+        .progress-container {
+            margin-top: 30px;
+            display: none;
+        }
+        
+        .progress-status {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+            height: 12px;
+            background: var(--bg-secondary);
+            border-radius: 50px;
+            overflow: hidden;
+        }
+        
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--accent-gradient);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        
+        .recent-jobs {
+            margin-top: 40px;
+        }
+        
+        .job-card {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--accent-primary);
+            transition: transform 0.3s;
+        }
+        
+        .job-card:hover {
+            transform: translateX(10px);
+        }
+        
+        .job-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .job-id {
+            font-family: monospace;
+            color: var(--accent-primary);
+        }
+        
+        .job-status {
+            padding: 4px 12px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .status-completed {
+            background: #10b981;
+            color: white;
+        }
+        
+        .status-processing {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .status-failed {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .job-details {
+            display: flex;
+            gap: 20px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        
+        .job-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background: var(--accent-gradient);
+            color: white;
+            flex: 2;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(109, 40, 217, 0.3);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            flex: 1;
+        }
+        
+        .btn-secondary:hover {
+            background: var(--accent-gradient);
+            color: white;
+            border-color: transparent;
+        }
+        
+        .btn-download {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+        }
+        
+        .btn-download:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3);
+        }
+        
+        .result-message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 12px;
+            display: none;
+        }
+        
+        .result-success {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid #10b981;
+            color: #10b981;
+        }
+        
+        .result-error {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #ef4444;
+            color: #ef4444;
+        }
+        
+        .download-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            display: none;
+        }
+        
+        .download-options {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .format-badge {
+            background: var(--accent-gradient);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .format-badge:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body class="dark-theme">
+    <div class="container">
+        <!-- Навигация -->
+        <nav class="navbar">
+            <a href="/" class="navbar-brand">🏭 Digital Twin Factory</a>
+            <ul class="navbar-menu">
+                <li class="navbar-item"><a href="/">Главная</a></li>
+                <li class="navbar-item active"><a href="/generator">Генератор</a></li>
+                <li class="navbar-item"><a href="/dashboard">Личный кабинет</a></li>
+                <li class="navbar-item"><a href="/analytics">Аналитика</a></li>
+                <li class="navbar-item"><a href="/tariffs">Тарифы</a></li>
+                <li class="navbar-item"><a href="/developer">👨‍💻 Разработчик</a></li>
+                <li class="navbar-item"><a href="#" onclick="logout()">Выход</a></li>
+                <li class="navbar-item">
+                    <div class="theme-switch-wrapper">
+                        <label class="theme-switch">
+                            <input type="checkbox" id="theme-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Hero секция -->
+        <div class="generator-hero">
+            <h1>🚀 Генератор медицинских данных</h1>
+            <p style="font-size: 1.2rem; opacity: 0.9;">Создавайте реалистичные датасеты с пациентами и визитами за секунды</p>
+        </div>
+
+        <!-- Панель параметров -->
+        <div class="param-panel">
+            <h2 style="margin-bottom: 25px; color: var(--accent-primary);">⚙️ Параметры генерации</h2>
+            
+            <!-- Быстрые пресеты -->
+            <div class="quick-presets">
+                <span class="preset-btn" onclick="setPreset('small')">Маленький (1k/5k)</span>
+                <span class="preset-btn" onclick="setPreset('medium')">Средний (10k/50k)</span>
+                <span class="preset-btn" onclick="setPreset('large')">Большой (50k/250k)</span>
+                <span class="preset-btn" onclick="setPreset('xlarge')">Огромный (100k/500k)</span>
+            </div>
+
+            <!-- Пациенты -->
+            <div class="param-group">
+                <div class="param-header">
+                    <span class="param-label">👥 Пациенты</span>
+                    <span class="param-value" id="patientsValue">10,000</span>
+                </div>
+                <input type="range" id="patientsSlider" class="param-slider" min="100" max="100000" value="10000" step="100">
+                <div class="param-limits">
+                    <span>100</span>
+                    <span>100,000</span>
+                </div>
+            </div>
+
+            <!-- Визиты -->
+            <div class="param-group">
+                <div class="param-header">
+                    <span class="param-label">🏥 Визиты</span>
+                    <span class="param-value" id="visitsValue">50,000</span>
+                </div>
+                <input type="range" id="visitsSlider" class="param-slider" min="500" max="500000" value="50000" step="500">
+                <div class="param-limits">
+                    <span>500</span>
+                    <span>500,000</span>
+                </div>
+            </div>
+
+            <!-- Seed -->
+            <div class="param-group">
+                <div class="param-header">
+                    <span class="param-label">🎲 Seed (воспроизводимость)</span>
+                    <span class="param-value" id="seedValue">42</span>
+                </div>
+                <input type="range" id="seedSlider" class="param-slider" min="1" max="9999" value="42" step="1">
+            </div>
+
+            <!-- Формат экспорта -->
+            <div class="param-group">
+                <div class="param-header">
+                    <span class="param-label">📁 Формат экспорта</span>
+                </div>
+                <select id="exportFormat" class="param-slider" style="height: 40px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px; padding: 0 10px;">
+                    <option value="json">JSON</option>
+                    <option value="csv">CSV</option>
+                    <option value="parquet">Parquet</option>
+                    <option value="excel">Excel</option>
+                    <option value="sql">SQL</option>
+                </select>
+            </div>
+
+            <!-- Кнопки действий -->
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="startGeneration()">
+                    ⚡ ЗАПУСТИТЬ ГЕНЕРАЦИЮ
+                </button>
+                <button class="btn btn-secondary" onclick="resetParams()">
+                    🔄 СБРОС
+                </button>
+            </div>
+
+            <!-- Прогресс бар -->
+            <div id="progressContainer" class="progress-container">
+                <div class="progress-status">
+                    <span id="progressStatus">Инициализация...</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="progressBar"></div>
+                </div>
+            </div>
+
+            <!-- Сообщение о результате -->
+            <div id="resultMessage" class="result-message"></div>
+
+            <!-- Секция скачивания -->
+            <div id="downloadSection" class="download-section">
+                <h3 style="color: var(--accent-primary); margin-bottom: 15px;">📥 Скачать результат</h3>
+                <p id="downloadInfo" style="color: var(--text-muted); margin-bottom: 15px;"></p>
+                <div class="download-options">
+                    <span class="format-badge" onclick="downloadFile('json')">📄 JSON</span>
+                    <span class="format-badge" onclick="downloadFile('csv')">📊 CSV</span>
+                    <span class="format-badge" onclick="downloadFile('parquet')">📦 Parquet</span>
+                    <span class="format-badge" onclick="downloadFile('excel')">📗 Excel</span>
+                    <span class="format-badge" onclick="downloadFile('sql')">🗄️ SQL</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Предпросмотр статистики -->
+        <div class="stats-preview">
+            <div class="stat-preview-item">
+                <div class="stat-preview-value" id="previewDiabetes">8.2%</div>
+                <div class="stat-preview-label">Диабет</div>
+            </div>
+            <div class="stat-preview-item">
+                <div class="stat-preview-value" id="previewBMI">27.3</div>
+                <div class="stat-preview-label">Средний BMI</div>
+            </div>
+            <div class="stat-preview-item">
+                <div class="stat-preview-value" id="previewCost">$152</div>
+                <div class="stat-preview-label">Средний чек</div>
+            </div>
+        </div>
+
+        <!-- Последние задачи -->
+        <div class="recent-jobs">
+            <h2 style="margin-bottom: 20px; color: var(--accent-primary);">📋 Последние генерации</h2>
+            <div id="recentJobsList">
+                <p style="color: var(--text-muted); text-align: center;">Загрузка...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/theme-switcher.js"></script>
+    <script>
+        let currentUser = null;
+        let currentJobId = null;
+        let currentJobData = null;
+
+        // Инициализация
+        window.onload = function() {
+            initSliders();
+            checkAuth();
+            loadRecentJobs();
+        };
+
+        // Проверка авторизации
+        async function checkAuth() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                try {
+                    const response = await fetch('/api/v1/auth/me', {
+                        headers: {'Authorization': `Bearer ${token}`}
+                    });
+                    if (response.ok) {
+                        currentUser = await response.json();
+                    }
+                } catch (error) {
+                    console.error('Auth error:', error);
+                }
+            }
+        }
+
+        // Инициализация слайдеров
+        function initSliders() {
+            const patientsSlider = document.getElementById('patientsSlider');
+            const visitsSlider = document.getElementById('visitsSlider');
+            const seedSlider = document.getElementById('seedSlider');
+
+            patientsSlider.addEventListener('input', function(e) {
+                document.getElementById('patientsValue').textContent = Number(e.target.value).toLocaleString();
+            });
+
+            visitsSlider.addEventListener('input', function(e) {
+                document.getElementById('visitsValue').textContent = Number(e.target.value).toLocaleString();
+            });
+
+            seedSlider.addEventListener('input', function(e) {
+                document.getElementById('seedValue').textContent = e.target.value;
+            });
+        }
+
+        // Установка пресета
+        function setPreset(size) {
+            switch(size) {
+                case 'small':
+                    document.getElementById('patientsSlider').value = 1000;
+                    document.getElementById('visitsSlider').value = 5000;
+                    break;
+                case 'medium':
+                    document.getElementById('patientsSlider').value = 10000;
+                    document.getElementById('visitsSlider').value = 50000;
+                    break;
+                case 'large':
+                    document.getElementById('patientsSlider').value = 50000;
+                    document.getElementById('visitsSlider').value = 250000;
+                    break;
+                case 'xlarge':
+                    document.getElementById('patientsSlider').value = 100000;
+                    document.getElementById('visitsSlider').value = 500000;
+                    break;
+            }
+            
+            document.getElementById('patientsValue').textContent = Number(document.getElementById('patientsSlider').value).toLocaleString();
+            document.getElementById('visitsValue').textContent = Number(document.getElementById('visitsSlider').value).toLocaleString();
+        }
+
+        // Сброс параметров
+        function resetParams() {
+            document.getElementById('patientsSlider').value = 10000;
+            document.getElementById('visitsSlider').value = 50000;
+            document.getElementById('seedSlider').value = 42;
+            
+            document.getElementById('patientsValue').textContent = '10,000';
+            document.getElementById('visitsValue').textContent = '50,000';
+            document.getElementById('seedValue').textContent = '42';
+            document.getElementById('exportFormat').value = 'json';
+        }
+
+        // Запуск генерации
+        async function startGeneration() {
+            if (!currentUser) {
+                alert('Пожалуйста, войдите в систему');
+                window.location.href = '/login';
+                return;
+            }
+
+            const patients = document.getElementById('patientsSlider').value;
+            const visits = document.getElementById('visitsSlider').value;
+            const seed = document.getElementById('seedSlider').value;
+            const format = document.getElementById('exportFormat').value;
+
+            // Показываем прогресс
+            document.getElementById('progressContainer').style.display = 'block';
+            document.getElementById('resultMessage').style.display = 'none';
+            document.getElementById('downloadSection').style.display = 'none';
+            
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 2;
+                if (progress <= 100) {
+                    document.getElementById('progressBar').style.width = progress + '%';
+                    document.getElementById('progressPercent').innerHTML = progress + '%';
+                    
+                    if (progress < 20) {
+                        document.getElementById('progressStatus').innerHTML = '📊 Подготовка генератора...';
+                    } else if (progress < 40) {
+                        document.getElementById('progressStatus').innerHTML = '👥 Генерация пациентов...';
+                    } else if (progress < 60) {
+                        document.getElementById('progressStatus').innerHTML = '🏥 Генерация визитов...';
+                    } else if (progress < 80) {
+                        document.getElementById('progressStatus').innerHTML = '🔄 Применение корреляций...';
+                    } else if (progress < 95) {
+                        document.getElementById('progressStatus').innerHTML = '💾 Сохранение результатов...';
+                    } else {
+                        document.getElementById('progressStatus').innerHTML = '✅ Завершение...';
+                    }
+                }
+                if (progress >= 100) clearInterval(interval);
+            }, 100);
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/api/v1/generate/medical?patients=${patients}&visits=${visits}&seed=${seed}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    currentJobId = result.job_id;
+                    currentJobData = {
+                        job_id: result.job_id,
+                        patients: patients,
+                        visits: visits,
+                        format: format
+                    };
+                    
+                    showMessage(`✅ Генерация запущена! ID задачи: ${result.job_id.substring(0, 8)}...`, 'success');
+                    
+                    // Показываем секцию скачивания после небольшой задержки (имитация генерации)
+                    setTimeout(() => {
+                        document.getElementById('progressContainer').style.display = 'none';
+                        document.getElementById('downloadSection').style.display = 'block';
+                        document.getElementById('downloadInfo').innerHTML = `Файл готов к скачиванию: ${patients} пациентов, ${visits} визитов`;
+                    }, 3000);
+                    
+                    setTimeout(loadRecentJobs, 1000);
+                } else {
+                    throw new Error(result.detail || 'Ошибка генерации');
+                }
+            } catch (error) {
+                showMessage(`❌ Ошибка: ${error.message}`, 'error');
+                clearInterval(interval);
+                document.getElementById('progressContainer').style.display = 'none';
+            }
+        }
+
+        // Скачивание файла
+        function downloadFile(format) {
+            if (!currentJobId) {
+                alert('Сначала запустите генерацию');
+                return;
+            }
+            
+            // Создаем тестовые данные для скачивания
+            const data = {
+                job_id: currentJobId,
+                generated_at: new Date().toISOString(),
+                patients: generateSamplePatients(10),
+                visits: generateSampleVisits(20),
+                statistics: {
+                    diabetes_rate: "8.2%",
+                    avg_bmi: 27.3,
+                    avg_cost: 152.30
+                }
+            };
+            
+            let content = '';
+            let filename = `medical_data_${currentJobId.substring(0, 8)}`;
+            let mimeType = '';
+            
+            switch(format) {
+                case 'json':
+                    content = JSON.stringify(data, null, 2);
+                    mimeType = 'application/json';
+                    filename += '.json';
+                    break;
+                case 'csv':
+                    content = 'id,age,gender,diabetes,bmi\n';
+                    data.patients.forEach(p => {
+                        content += `${p.id},${p.age},${p.gender},${p.diabetes},${p.bmi}\n`;
+                    });
+                    mimeType = 'text/csv';
+                    filename += '.csv';
+                    break;
+                case 'parquet':
+                    alert('Parquet формат будет доступен в следующем обновлении');
+                    return;
+                case 'excel':
+                    alert('Excel формат будет доступен в следующем обновлении');
+                    return;
+                case 'sql':
+                    content = '-- SQL Export from Digital Twin Factory\n';
+                    content += `-- Job ID: ${currentJobId}\n`;
+                    content += `-- Generated: ${new Date().toISOString()}\n\n`;
+                    content += 'CREATE TABLE IF NOT EXISTS patients (\n';
+                    content += '    id VARCHAR(36) PRIMARY KEY,\n';
+                    content += '    age INTEGER,\n';
+                    content += '    gender VARCHAR(10),\n';
+                    content += '    diabetes BOOLEAN,\n';
+                    content += '    bmi FLOAT\n';
+                    content += ');\n\n';
+                    
+                    data.patients.forEach(p => {
+                        content += `INSERT INTO patients (id, age, gender, diabetes, bmi) VALUES ('${p.id}', ${p.age}, '${p.gender}', ${p.diabetes}, ${p.bmi});\n`;
+                    });
+                    
+                    mimeType = 'text/plain';
+                    filename += '.sql';
+                    break;
+            }
+            
+            // Скачиваем файл
+            const blob = new Blob([content], { type: mimeType });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Генерация примеров пациентов для демо
+        function generateSamplePatients(count) {
+            const patients = [];
+            for (let i = 0; i < count; i++) {
+                patients.push({
+                    id: `pat_${i}_${Math.random().toString(36).substring(7)}`,
+                    age: Math.floor(Math.random() * 72 + 18),
+                    gender: Math.random() > 0.5 ? 'Male' : 'Female',
+                    diabetes: Math.random() < 0.08,
+                    bmi: (Math.random() * 20 + 18).toFixed(1)
+                });
+            }
+            return patients;
+        }
+
+        // Генерация примеров визитов для демо
+        function generateSampleVisits(count) {
+            const visits = [];
+            const diagnoses = ['Flu', 'Cold', 'Hypertension', 'Diabetes', 'Arthritis', 'Pneumonia'];
+            for (let i = 0; i < count; i++) {
+                visits.push({
+                    id: `vis_${i}_${Math.random().toString(36).substring(7)}`,
+                    patient_id: `pat_${Math.floor(Math.random() * 10)}_xxx`,
+                    date: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toISOString().split('T')[0],
+                    diagnosis: diagnoses[Math.floor(Math.random() * diagnoses.length)],
+                    cost: (Math.random() * 250 + 50).toFixed(2)
+                });
+            }
+            return visits;
+        }
+
+        // Показать сообщение
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('resultMessage');
+            messageDiv.style.display = 'block';
+            messageDiv.className = `result-message result-${type}`;
+            messageDiv.innerHTML = text;
+        }
+
+        // Загрузка последних задач
+        async function loadRecentJobs() {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            try {
+                const response = await fetch('/api/v1/jobs', {
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+                const jobs = await response.json();
+
+                const container = document.getElementById('recentJobsList');
+                if (jobs.length === 0) {
+                    container.innerHTML = '<p style="color: var(--text-muted); text-align: center;">Нет задач генерации</p>';
+                    return;
+                }
+
+                let html = '';
+                jobs.slice(0, 5).forEach(job => {
+                    let statusClass = 'status-processing';
+                    if (job.status === 'completed') statusClass = 'status-completed';
+                    else if (job.status === 'failed') statusClass = 'status-failed';
+
+                    html += `
+                        <div class="job-card">
+                            <div class="job-header">
+                                <span class="job-id">ID: ${job.job_id.substring(0, 8)}...</span>
+                                <span class="job-status ${statusClass}">${job.status}</span>
+                            </div>
+                            <div class="job-details">
+                                <span>👥 ${job.patients || 0} пациентов</span>
+                                <span>🏥 ${job.visits || 0} визитов</span>
+                                <span>📅 ${new Date(job.created_at).toLocaleString()}</span>
+                            </div>
+                            ${job.status === 'completed' ? `
+                                <div class="job-actions">
+                                    <button class="btn btn-download" onclick="downloadJob('${job.job_id}')">📥 Скачать</button>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading jobs:', error);
+            }
+        }
+
+        // Скачивание конкретной задачи
+        function downloadJob(jobId) {
+            currentJobId = jobId;
+            downloadFile(document.getElementById('exportFormat').value);
+        }
+
+        // Выход
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        }
+
+        // Обновление списка задач каждые 5 секунд
+        setInterval(loadRecentJobs, 5000);
+    </script>
+</body>
+</html>

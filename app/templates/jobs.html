@@ -1,15 +1,11 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digital Twin Factory - Задачи</title>
+    <title>Задачи</title>
     <link rel="stylesheet" href="/static/css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
-        <!-- Навигация -->
         <nav class="navbar">
             <a href="/" class="navbar-brand">🏭 Digital Twin Factory</a>
             <ul class="navbar-menu">
@@ -17,122 +13,13 @@
                 <li class="navbar-item"><a href="/generator">Генератор</a></li>
                 <li class="navbar-item active"><a href="/jobs">Задачи</a></li>
                 <li class="navbar-item"><a href="/analytics">Аналитика</a></li>
-                <li class="navbar-item"><a href="/api/docs">API</a></li>
             </ul>
         </nav>
-
-        <!-- Заголовок -->
+        
         <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h1 class="card-title">📋 Задачи генерации</h1>
-                    <p style="color: #6c757d;">История всех запущенных генераций данных</p>
-                </div>
-                <button class="btn btn-primary" onclick="window.location.reload()">
-                    🔄 Обновить
-                </button>
-            </div>
-        </div>
-
-        <!-- Статистика задач -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon">📊</div>
-                <div class="stat-label">Всего задач</div>
-                <div class="stat-value" id="totalJobs">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">✅</div>
-                <div class="stat-label">Завершено</div>
-                <div class="stat-value" id="completedJobs">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">⏳</div>
-                <div class="stat-label">В процессе</div>
-                <div class="stat-value" id="activeJobs">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">❌</div>
-                <div class="stat-label">Ошибки</div>
-                <div class="stat-value" id="failedJobs">0</div>
-            </div>
-        </div>
-
-        <!-- Таблица задач -->
-        <div class="table-container">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>ID задачи</th>
-                        <th>Пациенты</th>
-                        <th>Визиты</th>
-                        <th>Статус</th>
-                        <th>Дата создания</th>
-                    </tr>
-                </thead>
-                <tbody id="jobsTableBody">
-                    <tr>
-                        <td colspan="5" style="text-align: center; padding: 40px;">
-                            <div style="font-size: 1.2rem; color: #6c757d;">Загрузка задач...</div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Футер -->
-        <div class="footer">
-            <p>Digital Twin Factory © 2024 | Версия 2.0.0</p>
+            <h1 class="card-title">📋 Задачи</h1>
+            <p>Страница в разработке</p>
         </div>
     </div>
-
-    <script>
-        async function loadJobs() {
-            try {
-                const response = await fetch('/api/v1/jobs');
-                const jobs = await response.json();
-                
-                const total = jobs.length;
-                const completed = jobs.filter(j => j.status === 'completed').length;
-                const active = jobs.filter(j => j.status === 'processing' || j.status === 'pending').length;
-                const failed = jobs.filter(j => j.status === 'failed').length;
-                
-                document.getElementById('totalJobs').textContent = total;
-                document.getElementById('completedJobs').textContent = completed;
-                document.getElementById('activeJobs').textContent = active;
-                document.getElementById('failedJobs').textContent = failed;
-                
-                let html = '';
-                if (jobs.length === 0) {
-                    html = '<tr><td colspan="5" style="text-align: center; padding: 40px;">📭 Нет задач</td></tr>';
-                } else {
-                    jobs.slice(0, 10).forEach(job => {
-                        let statusClass = '';
-                        let statusText = job.status || 'pending';
-                        
-                        if (statusText === 'completed') statusClass = 'badge-success';
-                        else if (statusText === 'processing' || statusText === 'pending') statusClass = 'badge-primary';
-                        else if (statusText === 'failed') statusClass = 'badge-danger';
-                        
-                        html += `<tr>
-                            <td><code>${job.job_id ? job.job_id.substring(0, 8) : 'N/A'}...</code></td>
-                            <td>${job.patients || 0}</td>
-                            <td>${job.visits || 0}</td>
-                            <td><span class="badge ${statusClass}">${statusText}</span></td>
-                            <td>${job.created_at ? new Date(job.created_at).toLocaleString() : 'N/A'}</td>
-                        </tr>`;
-                    });
-                }
-                
-                document.getElementById('jobsTableBody').innerHTML = html;
-            } catch (error) {
-                console.error('Error:', error);
-                document.getElementById('jobsTableBody').innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #dc3545;">❌ Ошибка загрузки</td></tr>';
-            }
-        }
-        
-        loadJobs();
-        setInterval(loadJobs, 5000);
-    </script>
 </body>
 </html>

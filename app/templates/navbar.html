@@ -1,0 +1,34 @@
+<nav class="navbar">
+    <a href="/" class="navbar-brand">🏭 Digital Twin Factory</a>
+    <ul class="navbar-menu">
+        <li class="navbar-item"><a href="/">Главная</a></li>
+        <li class="navbar-item"><a href="/generator">Генератор</a></li>
+        <li class="navbar-item"><a href="/tariffs">Тарифы</a></li>
+        {% if user %}
+            <li class="navbar-item"><a href="/dashboard">Личный кабинет</a></li>
+            {% if user.is_developer %}
+                <li class="navbar-item"><a href="/developer">👨‍💻 Разработчик</a></li>
+            {% endif %}
+            <li class="navbar-item"><a href="#" onclick="logout()">Выход</a></li>
+        {% else %}
+            <li class="navbar-item"><a href="/login">Вход</a></li>
+            <li class="navbar-item"><a href="/register">Регистрация</a></li>
+        {% endif %}
+        <li class="navbar-item">
+            <div class="theme-switch-wrapper">
+                <label class="theme-switch">
+                    <input type="checkbox" id="theme-toggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </li>
+    </ul>
+</nav>
+
+<script>
+function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/';
+}
+</script>

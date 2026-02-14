@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Twin Factory - Генератор</title>
+    <link rel="stylesheet" href="/static/css/dark-theme.css">
+    <link rel="stylesheet" href="/static/css/theme-switcher.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        .generator-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        .control-panel {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .preview-panel {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .param-slider {
+            width: 100%;
+            margin: 15px 0;
+            -webkit-appearance: none;
+            height: 8px;
+            border-radius: 4px;
+            background: var(--accent-gradient);
+        }
+        
+        .param-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--accent-primary);
+        }
+        
+        .param-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--accent-primary);
+        }
+        
+        .stats-grid-small {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-item {
+            background: var(--bg-card);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .stat-label-small {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+        
+        .stat-value-small {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-primary);
+        }
+        
+        .correlation-badge {
+            background: var(--accent-gradient);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            display: inline-block;
+            margin: 5px;
+        }
+        
+        .job-item {
+            background: var(--bg-card);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--accent-primary);
+        }
+        
+        .job-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .status-completed { background: #10b981; color: white; }
+        .status-processing { background: #f59e0b; color: white; }
+        .status-failed { background: #ef4444; color: white; }
+    </style>
+</head>
+<body class="dark-theme">
+    <div class="container">
+        <!-- Навигация -->
+        <nav class="navbar">
+            <a href="/" class="navbar-brand">🏭 Digital Twin Factory</a>
+            <ul class="navbar-menu">
+                <li class="navbar-item"><a href="/">Главная</a></li>
+                <li class="navbar-item active"><a href="/generator">Генератор</a></li>
+                <li class="navbar-item"><a href="/tariffs">Тарифы</a></li>
+                <li class="navbar-item"><a href="/dashboard">Личный кабинет</a></li>
+                <li class="navbar-item"><a href="/developer">👨‍💻 Разработчик</a></li>
+                <li class="navbar-item"><a href="#" onclick="logout()">Выход</a></li>
+                <li class="navbar-item">
+                    <div class="theme-switch-wrapper">
+                        <label class="theme-switch">
+                            <input type="checkbox" id="theme-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Заголовок -->
+        <div class="card">
+            <h1 class="card-title">🚀 Генератор медицинских данных</h1>
+            <p style="color: var(--text-muted);">Создание реалистичных датасетов с пациентами и визитами к врачу. Все данные генерируются с учетом корреляций и сезонности.</p>
+        </div>
+
+        <!-- Основной контент -->
+        <div class="generator-container">
+            <!-- Панель управления -->
+            <div class="control-panel">
+                <h2 style="margin-bottom: 20px; color: var(--accent-primary);">⚙️ Параметры генерации</h2>
+                
+                <div style="margin-bottom: 30px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <label style="font-weight: 600;">👥 Пациенты</label>
+                        <span class="param-value" id="patientsValue">10,000</span>
+                    </div>
+                    <input type="range" id="patientsSlider" class="param-slider" min="100" max="100000" value="10000" step="100">
+                    <div style="display: flex; justify-content: space-between; margin-top: 5px;">
+                        <span style="color: var(--text-muted);">100</span>
+                        <span style="color: var(--text-muted);">100,000</span>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 30px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <label style="font-weight: 600;">🏥 Визиты</label>
+                        <span class="param-value" id="visitsValue">50,000</span>
+                    </div>
+                    <input type="range" id="visitsSlider" class="param-slider" min="500" max="500000" value="50000" step="500">
+                    <div style="display: flex; justify-content: space-between; margin-top: 5px;">
+                        <span style="color: var(--text-muted);">500</span>
+                        <span style="color: var(--text-muted);">500,000</span>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 30px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <label style="font-weight: 600;">🎲 Seed (для воспроизводимости)</label>
+                        <span class="param-value" id="seedValue">42</span>
+                    </div>
+                    <input type="range" id="seedSlider" class="param-slider" min="1" max="9999" value="42" step="1">
+                </div>
+
+                <div style="display: flex; gap: 15px; margin-top: 30px;">
+                    <button class="btn btn-primary btn-lg" style="flex: 2;" onclick="startGeneration()">
+                        ⚡ ЗАПУСТИТЬ ГЕНЕРАЦИЮ
+                    </button>
+                    <button class="btn btn-secondary btn-lg" style="flex: 1;" onclick="resetParams()">
+                        🔄 СБРОС
+                    </button>
+                </div>
+
+                <!-- Прогресс бар -->
+                <div id="progressContainer" style="display: none; margin-top: 30px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <span id="progressStatus">Инициализация...</span>
+                        <span id="progressPercent" style="color: var(--accent-primary);">0%</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar" id="progressBar" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <!-- Сообщение о результате -->
+                <div id="resultMessage" style="display: none; margin-top: 20px;" class="alert alert-success">
+                </div>
+            </div>
+
+            <!-- Панель предпросмотра и статистики -->
+            <div class="preview-panel">
+                <h2 style="margin-bottom: 20px; color: var(--accent-primary);">📊 Предпросмотр данных</h2>
+                
+                <!-- Статистика текущей генерации -->
+                <div class="stats-grid-small">
+                    <div class="stat-item">
+                        <div class="stat-label-small">Диабет</div>
+                        <div class="stat-value-small" id="diabetesRate">8.2%</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label-small">Средний BMI</div>
+                        <div class="stat-value-small" id="avgBMI">27.3</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label-small">Ср. стоимость</div>
+                        <div class="stat-value-small" id="avgCost">$152</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label-small">Корреляция</div>
+                        <div class="stat-value-small" id="correlation">+6.2</div>
+                    </div>
+                </div>
+
+                <!-- Корреляции -->
+                <div style="margin: 20px 0;">
+                    <h3 style="margin-bottom: 15px;">📈 Активные корреляции</h3>
+                    <div>
+                        <span class="correlation-badge">📊 Диабет → BMI: +6.2</span>
+                        <span class="correlation-badge">❄️ Зима → Грипп: +40%</span>
+                        <span class="correlation-badge">👴 Возраст → Пневмония: 25%</span>
+                        <span class="correlation-badge">👶 Дети → Простуда: 90%</span>
+                    </div>
+                </div>
+
+                <!-- Примеры данных -->
+                <div style="margin: 20px 0;">
+                    <h3 style="margin-bottom: 15px;">📋 Пример пациента</h3>
+                    <pre id="samplePatient" style="background: var(--bg-card); padding: 15px; border-radius: 10px; overflow-x: auto;">
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "age": 45,
+  "gender": "Male",
+  "diabetes": true,
+  "bmi": 32.1,
+  "hypertension": true
+}
+                    </pre>
+                </div>
+
+                <div style="margin: 20px 0;">
+                    <h3 style="margin-bottom: 15px;">📋 Пример визита</h3>
+                    <pre id="sampleVisit" style="background: var(--bg-card); padding: 15px; border-radius: 10px; overflow-x: auto;">
+{
+  "id": "660e8400-e29b-41d4-a716-446655440001",
+  "patient_id": "550e8400-e29b-41d4-a716-446655440000",
+  "date": "2024-01-15",
+  "diagnosis": "Flu",
+  "cost": 150.50
+}
+                    </pre>
+                </div>
+
+                <!-- График корреляции -->
+                <div style="margin: 30px 0;">
+                    <h3 style="margin-bottom: 15px;">📊 BMI: Диабетики vs Не-диабетики</h3>
+                    <canvas id="bmiChart" style="height: 200px; width: 100%;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Список последних задач -->
+        <div class="card" style="margin-top: 30px;">
+            <h2 class="card-title">📋 Последние задачи генерации</h2>
+            <div id="recentJobs" style="max-height: 300px; overflow-y: auto;">
+                <!-- Здесь будут появляться задачи -->
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/theme-switcher.js"></script>
+    <script>
+        let currentUser = null;
+        let bmiChart = null;
+
+        // Инициализация
+        window.onload = function() {
+            checkAuth();
+            initSliders();
+            initChart();
+            loadRecentJobs();
+        };
+
+        // Проверка авторизации
+        async function checkAuth() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                try {
+                    const response = await fetch('/api/v1/auth/me', {
+                        headers: {'Authorization': `Bearer ${token}`}
+                    });
+                    if (response.ok) {
+                        currentUser = await response.json();
+                    }
+                } catch (error) {
+                    console.error('Auth error:', error);
+                }
+            }
+        }
+
+        // Инициализация слайдеров
+        function initSliders() {
+            const patientsSlider = document.getElementById('patientsSlider');
+            const visitsSlider = document.getElementById('visitsSlider');
+            const seedSlider = document.getElementById('seedSlider');
+
+            patientsSlider.addEventListener('input', function(e) {
+                document.getElementById('patientsValue').textContent = Number(e.target.value).toLocaleString();
+            });
+
+            visitsSlider.addEventListener('input', function(e) {
+                document.getElementById('visitsValue').textContent = Number(e.target.value).toLocaleString();
+            });
+
+            seedSlider.addEventListener('input', function(e) {
+                document.getElementById('seedValue').textContent = e.target.value;
+            });
+        }
+
+        // Инициализация графика
+        function initChart() {
+            const ctx = document.getElementById('bmiChart').getContext('2d');
+            bmiChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Диабетики', 'Не-диабетики'],
+                    datasets: [{
+                        data: [32.1, 25.9],
+                        backgroundColor: ['#f72585', '#4cc9f0'],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 40
+                        }
+                    }
+                }
+            });
+        }
+
+        // Запуск генерации
+        async function startGeneration() {
+            if (!currentUser) {
+                alert('Пожалуйста, войдите в систему');
+                window.location.href = '/login';
+                return;
+            }
+
+            const patients = document.getElementById('patientsSlider').value;
+            const visits = document.getElementById('visitsSlider').value;
+            const seed = document.getElementById('seedSlider').value;
+
+            // Показываем прогресс
+            document.getElementById('progressContainer').style.display = 'block';
+            document.getElementById('resultMessage').style.display = 'none';
+            
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 2;
+                if (progress <= 100) {
+                    document.getElementById('progressBar').style.width = progress + '%';
+                    document.getElementById('progressPercent').innerHTML = progress + '%';
+                    
+                    if (progress < 20) {
+                        document.getElementById('progressStatus').innerHTML = '📊 Подготовка генератора...';
+                    } else if (progress < 40) {
+                        document.getElementById('progressStatus').innerHTML = '👥 Генерация пациентов...';
+                    } else if (progress < 60) {
+                        document.getElementById('progressStatus').innerHTML = '🏥 Генерация визитов...';
+                    } else if (progress < 80) {
+                        document.getElementById('progressStatus').innerHTML = '🔄 Применение корреляций...';
+                    } else if (progress < 95) {
+                        document.getElementById('progressStatus').innerHTML = '💾 Сохранение результатов...';
+                    } else {
+                        document.getElementById('progressStatus').innerHTML = '✅ Завершение...';
+                    }
+                }
+                if (progress >= 100) clearInterval(interval);
+            }, 100);
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/api/v1/generate/medical?patients=${patients}&visits=${visits}&seed=${seed}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('resultMessage').style.display = 'block';
+                    document.getElementById('resultMessage').innerHTML = `✅ Генерация запущена! ID задачи: ${result.job_id.substring(0, 8)}...`;
+                    
+                    // Обновляем статистику
+                    updateStats();
+                    
+                    // Загружаем обновленный список задач
+                    setTimeout(loadRecentJobs, 1000);
+                } else {
+                    throw new Error(result.detail || 'Ошибка генерации');
+                }
+            } catch (error) {
+                document.getElementById('resultMessage').style.display = 'block';
+                document.getElementById('resultMessage').className = 'alert alert-error';
+                document.getElementById('resultMessage').innerHTML = `❌ Ошибка: ${error.message}`;
+                clearInterval(interval);
+                document.getElementById('progressContainer').style.display = 'none';
+            }
+        }
+
+        // Обновление статистики
+        async function updateStats() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/v1/stats', {
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+                const stats = await response.json();
+                
+                if (currentUser && currentUser.is_developer) {
+                    // Для разработчика показываем реальную статистику
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // Загрузка последних задач
+        async function loadRecentJobs() {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            try {
+                const response = await fetch('/api/v1/jobs', {
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+                const jobs = await response.json();
+
+                const container = document.getElementById('recentJobs');
+                if (jobs.length === 0) {
+                    container.innerHTML = '<p style="color: var(--text-muted); text-align: center;">Нет задач генерации</p>';
+                    return;
+                }
+
+                let html = '';
+                jobs.slice(0, 5).forEach(job => {
+                    let statusClass = 'status-processing';
+                    if (job.status === 'completed') statusClass = 'status-completed';
+                    else if (job.status === 'failed') statusClass = 'status-failed';
+
+                    html += `
+                        <div class="job-item">
+                            <div style="display: flex; justify-content: space-between;">
+                                <div>
+                                    <strong>ID:</strong> <code>${job.job_id.substring(0, 8)}...</code>
+                                </div>
+                                <span class="job-status ${statusClass}">${job.status}</span>
+                            </div>
+                            <div style="display: flex; gap: 20px; margin-top: 10px;">
+                                <span>👥 ${job.patients || 0} пациентов</span>
+                                <span>🏥 ${job.visits || 0} визитов</span>
+                                <span>📅 ${new Date(job.created_at).toLocaleString()}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading jobs:', error);
+            }
+        }
+
+        // Сброс параметров
+        function resetParams() {
+            document.getElementById('patientsSlider').value = 10000;
+            document.getElementById('visitsSlider').value = 50000;
+            document.getElementById('seedSlider').value = 42;
+            
+            document.getElementById('patientsValue').textContent = '10,000';
+            document.getElementById('visitsValue').textContent = '50,000';
+            document.getElementById('seedValue').textContent = '42';
+        }
+
+        // Выход
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        }
+
+        // Обновляем задачи каждые 5 секунд
+        setInterval(loadRecentJobs, 5000);
+    </script>
+</body>
+</html>
