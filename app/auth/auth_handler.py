@@ -9,14 +9,14 @@ from email.mime.multipart import MIMEMultipart
 import os
 
 # Секретный ключ для JWT
-SECRET_KEY = "your-super-secret-key-change-this-in-production"
+SECRET_KEY = os.getenv("SECRET_KEY", "your-super-secret-key-change-this-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 # Настройки для паролей
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# Настройки для почты (замените на свои)
+# Настройки для почты
 MAIL_USERNAME = os.getenv("MAIL_USERNAME", "your-email@gmail.com")
 MAIL_PASSWORD = os.getenv("MAIL_PASSWORD", "your-password")
 MAIL_SERVER = os.getenv("MAIL_SERVER", "smtp.gmail.com")
@@ -26,6 +26,9 @@ def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
 def get_password_hash(password):
+    # Обрезаем пароль до 72 символов для bcrypt
+    if len(password) > 72:
+        password = password[:72]
     return pwd_context.hash(password)
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -41,19 +44,35 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 def create_verification_token():
     return secrets.token_urlsafe(32)
 
-def send_verification_email(email: str, token: str, username: str):
-    """Отправка письма с подтверждением"""
+def send_verification_email(email: str, token: str, username: str, industry: str = "healthcare"):
+    """Отправка письма с подтверждением с учетом отрасли"""
     try:
-        # Для тестирования просто выводим ссылку в консоль
         verification_link = f"http://localhost:8000/verify-email?token={token}"
+        
+        # Индустриальные иконки
+        industry_icons = {
+            "healthcare": "🏥",
+            "finance": "💰",
+            "retail": "🛍️",
+            "manufacturing": "🏭",
+            "telecom": "📱",
+            "transport": "🚚",
+            "energy": "⚡",
+            "education": "🎓",
+            "marketing": "📊",
+            "hr": "👥"
+        }
+        
+        icon = industry_icons.get(industry, "🏭")
+        
         print("\n" + "="*60)
-        print("ССЫЛКА ДЛЯ ПОДТВЕРЖДЕНИЯ (тестовый режим)")
+        print(f"{icon} ПОДТВЕРЖДЕНИЕ РЕГИСТРАЦИИ - {industry.upper()}")
         print("="*60)
         print(f"Email: {email}")
         print(f"Пользователь: {username}")
+        print(f"Отрасль: {industry}")
         print(f"Ссылка: {verification_link}")
         print("="*60 + "\n")
-        
         return True
     except Exception as e:
         print(f"Ошибка отправки email: {e}")
@@ -62,16 +81,14 @@ def send_verification_email(email: str, token: str, username: str):
 def send_password_reset_email(email: str, token: str, username: str):
     """Отправка письма для сброса пароля"""
     try:
-        # Для тестирования выводим в консоль
         reset_link = f"http://localhost:8000/reset-password?token={token}"
         print("\n" + "="*60)
-        print("ССЫЛКА ДЛЯ СБРОСА ПАРОЛЯ (тестовый режим)")
+        print("🔐 СБРОС ПАРОЛЯ")
         print("="*60)
         print(f"Email: {email}")
         print(f"Пользователь: {username}")
         print(f"Ссылка: {reset_link}")
         print("="*60 + "\n")
-        
         return True
     except Exception as e:
         print(f"Ошибка отправки email: {e}")

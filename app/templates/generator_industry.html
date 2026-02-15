@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Twin Factory - Генератор</title>
+    <link rel="stylesheet" href="/static/css/dark-theme.css">
+    <link rel="stylesheet" href="/static/css/theme-switcher.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .industry-header {
+            background: var(--accent-gradient);
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .industry-icon-large {
+            font-size: 4rem;
+            background: rgba(255,255,255,0.2);
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .quick-switch {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        
+        .switch-btn {
+            padding: 8px 16px;
+            border-radius: 50px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .switch-btn:hover {
+            background: var(--accent-gradient);
+            color: white;
+        }
+        
+        .switch-btn.active {
+            background: var(--accent-gradient);
+            color: white;
+        }
+        
+        .template-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid var(--border-color);
+        }
+        
+        .template-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-primary);
+        }
+        
+        .industry-badge-current {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            background: var(--accent-gradient);
+            color: white;
+            border-radius: 50px;
+            font-size: 1.1rem;
+        }
+    </style>
+</head>
+<body class="dark-theme">
+    <div class="container">
+        <!-- Навигация -->
+        <nav class="navbar">
+            <a href="/" class="navbar-brand">🏭 Digital Twin Factory</a>
+            <ul class="navbar-menu">
+                <li class="navbar-item"><a href="/">Главная</a></li>
+                <li class="navbar-item active"><a href="/generator">Генератор</a></li>
+                <li class="navbar-item"><a href="/dashboard">Личный кабинет</a></li>
+                <li class="navbar-item"><a href="/analytics">Аналитика</a></li>
+                <li class="navbar-item"><a href="/tariffs">Тарифы</a></li>
+                <li class="navbar-item"><a href="#" onclick="logout()">Выход</a></li>
+                <li class="navbar-item">
+                    <div class="theme-switch-wrapper">
+                        <label class="theme-switch">
+                            <input type="checkbox" id="theme-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Индустрия-специфичный хедер -->
+        <div class="industry-header" id="industryHeader">
+            <div class="industry-icon-large" id="industryIcon">🏥</div>
+            <div>
+                <h1 style="color: white;">Генератор данных для <span id="industryName">Здравоохранения</span></h1>
+                <p style="color: rgba(255,255,255,0.9);">Специализированные шаблоны и корреляции для вашей отрасли</p>
+            </div>
+        </div>
+
+        <!-- Быстрое переключение между отраслями (для разработчика) -->
+        <div class="quick-switch" id="industrySwitcher" style="display: none;">
+            <button class="switch-btn active" onclick="switchIndustry('healthcare')">🏥 Здравоохранение</button>
+            <button class="switch-btn" onclick="switchIndustry('finance')">💰 Финансы</button>
+            <button class="switch-btn" onclick="switchIndustry('retail')">🛍️ Ритейл</button>
+            <button class="switch-btn" onclick="switchIndustry('manufacturing')">🏭 Промышленность</button>
+        </div>
+
+        <!-- Шаблоны для выбранной отрасли -->
+        <div class="grid">
+            <div class="card" style="grid-column: span 2;">
+                <h2 class="card-title">📋 Доступные шаблоны</h2>
+                <div class="grid" id="templatesList">
+                    <!-- Заполняется динамически -->
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">📊 Специфические корреляции</h2>
+                <div id="correlationsList">
+                    <!-- Заполняется динамически -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Основной генератор -->
+        <div class="param-panel">
+            <h2 style="margin-bottom: 25px;">⚙️ Параметры генерации</h2>
+            
+            <div class="grid" style="grid-template-columns: 1fr 1fr;">
+                <div class="param-group">
+                    <label class="form-label">📊 Количество записей</label>
+                    <input type="range" id="recordsSlider" class="param-slider" min="100" max="100000" value="10000">
+                    <div class="param-limits">
+                        <span>100</span>
+                        <span id="recordsValue">10,000</span>
+                        <span>100,000</span>
+                    </div>
+                </div>
+
+                <div class="param-group">
+                    <label class="form-label">🎲 Seed</label>
+                    <input type="range" id="seedSlider" class="param-slider" min="1" max="9999" value="42">
+                    <div class="param-limits">
+                        <span>1</span>
+                        <span id="seedValue">42</span>
+                        <span>9999</span>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary btn-lg" style="width: 100%;" onclick="startGeneration()">
+                ⚡ СГЕНЕРИРОВАТЬ ДАННЫЕ
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+
+        // Данные для разных отраслей
+        const industryData = {
+            healthcare: {
+                name: "Здравоохранение",
+                icon: "🏥",
+                templates: [
+                    {name: "Пациенты и визиты", desc: "10k пациентов, 50k визитов", icon: "👥"},
+                    {name: "Медицинские истории", desc: "Истории болезней с диагнозами", icon: "📋"},
+                    {name: "Лабораторные анализы", desc: "Результаты анализов", icon: "🔬"},
+                    {name: "Выписки рецептов", desc: "Лекарства и дозировки", icon: "💊"}
+                ],
+                correlations: [
+                    "Диабет → BMI: +6.2",
+                    "Курение → Рак легких: +45%",
+                    "Возраст → Давление: +0.5/год",
+                    "Сезон → Грипп: x3.5 зимой"
+                ],
+                color: "#f72585"
+            },
+            finance: {
+                name: "Финансы",
+                icon: "💰",
+                templates: [
+                    {name: "Банковские транзакции", desc: "10k транзакций", icon: "💳"},
+                    {name: "Кредитные истории", desc: "Клиенты и их кредиты", icon: "📊"},
+                    {name: "Инвестиционные портфели", desc: "Акции и облигации", icon: "📈"},
+                    {name: "Мошеннические операции", desc: "Аномалии и фрод", icon: "🚨"}
+                ],
+                correlations: [
+                    "Доход → Сумма кредита: r=0.78",
+                    "Возраст → Инвестиции: U-образная",
+                    "Регион → Просрочки: +25%",
+                    "Сезон → Потребление: +15% в дек"
+                ],
+                color: "#f8961e"
+            },
+            retail: {
+                name: "Ритейл",
+                icon: "🛍️",
+                templates: [
+                    {name: "Покупательские корзины", desc: "Товары и чеки", icon: "🛒"},
+                    {name: "Клиентская база", desc: "Профили покупателей", icon: "👤"},
+                    {name: "Складские остатки", desc: "Товары на складе", icon: "📦"},
+                    {name: "Ценовая динамика", desc: "История цен", icon: "🏷️"}
+                ],
+                correlations: [
+                    "Скидка → Продажи: +35%",
+                    "Сезон → Категория: одежда ±40%",
+                    "Возраст → Бренд: премиум 45+",
+                    "Гео → Товары: регион.специфика"
+                ],
+                color: "#4cc9f0"
+            },
+            manufacturing: {
+                name: "Промышленность",
+                icon: "🏭",
+                templates: [
+                    {name: "Производственные циклы", desc: "Партии продукции", icon: "⚙️"},
+                    {name: "Данные оборудования", desc: "Станки и датчики", icon: "🔧"},
+                    {name: "Контроль качества", desc: "Брак и дефекты", icon: "✅"},
+                    {name: "Прогноз поломок", desc: "Техобслуживание", icon: "⚠️"}
+                ],
+                correlations: [
+                    "Температура → Брак: +2%/°C",
+                    "Износ → Поломки: экспонента",
+                    "Смена → Производительность: -15%",
+                    "Влажность → Качество: обратная"
+                ],
+                color: "#4361ee"
+            }
+        };
+
+        // Загрузка пользователя
+        async function loadUser() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/auth/me', {
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+                if (response.ok) {
+                    currentUser = await response.json();
+                    loadIndustryData(currentUser.industry);
+                    
+                    // Для разработчика показываем переключатель отраслей
+                    if (currentUser.is_developer) {
+                        document.getElementById('industrySwitcher').style.display = 'flex';
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // Загрузка данных для отрасли
+        function loadIndustryData(industryId) {
+            const data = industryData[industryId] || industryData.healthcare;
+            
+            document.getElementById('industryIcon').textContent = data.icon;
+            document.getElementById('industryName').textContent = data.name;
+            
+            // Загрузить шаблоны
+            const templatesList = document.getElementById('templatesList');
+            templatesList.innerHTML = data.templates.map(t => `
+                <div class="template-card" onclick="selectTemplate('${t.name}')">
+                    <div style="font-size: 2rem; margin-bottom: 10px;">${t.icon}</div>
+                    <h3>${t.name}</h3>
+                    <p style="color: var(--text-muted);">${t.desc}</p>
+                </div>
+            `).join('');
+            
+            // Загрузить корреляции
+            const correlationsList = document.getElementById('correlationsList');
+            correlationsList.innerHTML = data.correlations.map(c => `
+                <div style="margin: 10px 0; padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
+                    <span style="color: ${data.color};">📊</span> ${c}
+                </div>
+            `).join('');
+        }
+
+        // Переключение отрасли (для разработчика)
+        function switchIndustry(industryId) {
+            document.querySelectorAll('.switch-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            loadIndustryData(industryId);
+        }
+
+        function selectTemplate(name) {
+            alert(`Выбран шаблон: ${name}`);
+        }
+
+        function startGeneration() {
+            alert('Генерация запущена!');
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        }
+
+        window.onload = loadUser;
+    </script>
+</body>
+</html>

@@ -174,14 +174,14 @@ async def login(user_data: UserLogin):
     return Token(
         access_token=access_token,
         token_type="bearer",
-        user=UserResponse(**user.dict())
+        user=UserResponse(**user.model_dump())
     )
 
 @app.get("/api/v1/auth/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    return UserResponse(**current_user.dict())
+    return UserResponse(**current_user.model_dump())
 
 @app.get("/api/v1/auth/verify")
 async def verify_email(token: str):
@@ -469,3 +469,72 @@ if __name__ == "__main__":
         uvicorn.run(app, host="0.0.0.0", port=port)
     else:
         print("❌ Нет свободных портов")
+
+# Оптимизация скорости
+from fastapi.middleware.gzip import GZipMiddleware
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# Кэширование статики
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
+import time
+
+# Добавить заголовки кэширования
+@app.middleware("http")
+async def add_cache_headers(request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
+
+# API для получения списка направлений
+@app.get("/api/v1/industries", response_model=List[IndustryResponse])
+async def get_industries():
+    """Получить список доступных направлений"""
+    return INDUSTRIES
+
+# Обновленный регистр с учетом отрасли
+@app.post("/api/v1/auth/register", response_model=dict)
+async def register(user_data: UserCreate):
+    """Регистрация нового пользователя с выбором направления"""
+    try:
+        user = create_user(user_data)
+        # Отправляем письмо с учетом отрасли
+        auth_handler.send_verification_email(
+            user.email, 
+            user.verification_token, 
+            user.username,
+            user.industry
+        )
+        return {"message": "User created successfully. Please check your email for verification."}
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Рекомендации на основе отрасли
+@app.get("/api/v1/recommendations/{industry}")
+async def get_industry_recommendations(industry: str):
+    """Получить рекомендации для конкретной отрасли"""
+    recommendations = {
+        "healthcare": {
+            "templates": ["patients", "visits", "diagnoses"],
+            "correlations": ["diabetes_bmi", "age_hypertension", "seasonal_flu"],
+            "popular_datasets": ["mimic-iii", "eicu"],
+            "featured_articles": ["Медицинская аналитика", "Корреляции в здравоохранении"]
+        },
+        "finance": {
+            "templates": ["transactions", "credit_scores", "portfolios"],
+            "correlations": ["income_loan", "age_investment", "region_default"],
+            "popular_datasets": ["credit-card-fraud", "stock-prices"],
+            "featured_articles": ["Финтех аналитика", "Обнаружение мошенничества"]
+        },
+        "retail": {
+            "templates": ["shopping_carts", "customer_profiles", "inventory"],
+            "correlations": ["discount_sales", "season_category", "age_brand"],
+            "popular_datasets": ["online-retail", "customer-segmentation"],
+            "featured_articles": ["E-commerce аналитика", "Персонализация"]
+        }
+    }
+    return recommendations.get(industry, recommendations["healthcare"])

@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация - Digital Twin Factory</title>
+    <link rel="stylesheet" href="/static/css/dark-theme.css">
+    <link rel="stylesheet" href="/static/css/theme-switcher.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .industry-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .industry-card {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        
+        .industry-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-primary);
+            box-shadow: 0 10px 20px rgba(109, 40, 217, 0.3);
+        }
+        
+        .industry-card.selected {
+            border-color: var(--accent-primary);
+            background: linear-gradient(145deg, var(--bg-secondary), rgba(109, 40, 217, 0.1));
+        }
+        
+        .industry-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .industry-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .feature-preview {
+            margin-top: 30px;
+            padding: 20px;
+            background: var(--bg-card);
+            border-radius: 16px;
+            border-left: 4px solid var(--accent-primary);
+        }
+        
+        .feature-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin: 2px;
+        }
+        
+        .progress-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        
+        .step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+        
+        .step:not(:last-child):after {
+            content: '';
+            position: absolute;
+            top: 15px;
+            right: -50%;
+            width: 100%;
+            height: 2px;
+            background: var(--border-color);
+            z-index: 1;
+        }
+        
+        .step-number {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            position: relative;
+            z-index: 2;
+            transition: all 0.3s;
+        }
+        
+        .step.active .step-number {
+            background: var(--accent-gradient);
+            border-color: var(--accent-primary);
+            color: white;
+        }
+        
+        .step.completed .step-number {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
+        }
+        
+        .industry-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 50px;
+            background: var(--accent-gradient);
+            color: white;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body class="dark-theme">
+    <div class="container">
+        <!-- Навигация -->
+        <nav class="navbar">
+            <a href="/" class="navbar-brand">🏭 Digital Twin Factory</a>
+            <ul class="navbar-menu">
+                <li class="navbar-item"><a href="/">Главная</a></li>
+                <li class="navbar-item"><a href="/tariffs">Тарифы</a></li>
+                <li class="navbar-item"><a href="/login">Вход</a></li>
+                <li class="navbar-item active"><a href="/register">Регистрация</a></li>
+                <li class="navbar-item">
+                    <div class="theme-switch-wrapper">
+                        <label class="theme-switch">
+                            <input type="checkbox" id="theme-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Прогресс регистрации -->
+        <div class="progress-steps">
+            <div class="step active">
+                <div class="step-number">1</div>
+                <div>Выбор направления</div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div>Личные данные</div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div>Подтверждение</div>
+            </div>
+        </div>
+
+        <div style="max-width: 800px; margin: 0 auto;">
+            <div class="card">
+                <h1 class="card-title">📝 Регистрация в Digital Twin Factory</h1>
+                <p style="color: var(--text-muted); margin-bottom: 20px;">Выберите направление деятельности, чтобы получить персонализированный опыт</p>
+                
+                <div id="message" class="alert" style="display: none;"></div>
+                
+                <!-- Шаг 1: Выбор направления -->
+                <div id="step1">
+                    <h2 style="margin-bottom: 20px;">1. Выберите ваше направление</h2>
+                    <div class="industry-selector" id="industrySelector">
+                        <!-- Динамически заполняется через JS -->
+                    </div>
+                    <button class="btn btn-primary btn-block btn-lg" onclick="nextStep()" id="nextBtn" disabled>
+                        Далее →
+                    </button>
+                </div>
+
+                <!-- Шаг 2: Личные данные -->
+                <div id="step2" style="display: none;">
+                    <h2 style="margin-bottom: 20px;">2. Введите ваши данные</h2>
+                    
+                    <div class="industry-badge" id="selectedIndustryBadge"></div>
+                    
+                    <form id="registerForm">
+                        <input type="hidden" id="industry" name="industry">
+                        
+                        <div class="form-group">
+                            <label class="form-label">Имя пользователя</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Полное имя</label>
+                            <input type="text" class="form-control" id="full_name" name="full_name">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Пароль</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Подтверждение пароля</label>
+                            <input type="password" class="form-control" id="confirm_password" required>
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px; margin-top: 20px;">
+                            <button type="button" class="btn btn-secondary" onclick="prevStep()">← Назад</button>
+                            <button type="submit" class="btn btn-primary" style="flex: 1;">📝 Зарегистрироваться</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Шаг 3: Подтверждение (показывается после успешной регистрации) -->
+                <div id="step3" style="display: none; text-align: center;">
+                    <div style="font-size: 4rem; margin: 20px;">✅</div>
+                    <h2>Почти готово!</h2>
+                    <p style="margin: 20px 0;">Мы отправили письмо с подтверждением на ваш email. Перейдите по ссылке в письме, чтобы активировать аккаунт.</p>
+                    <p style="color: var(--text-muted);">Письмо должно прийти в течение 5 минут. Проверьте папку "Спам".</p>
+                    <button class="btn btn-primary" onclick="window.location.href='/login'">Перейти к входу</button>
+                </div>
+            </div>
+
+            <!-- Предпросмотр фич для выбранного направления -->
+            <div id="featurePreview" class="feature-preview" style="display: none;">
+                <h3 style="margin-bottom: 15px;">✨ Доступные возможности для выбранного направления:</h3>
+                <div id="featureList"></div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Digital Twin Factory © 2024 | Уникальная платформа с поддержкой 10+ направлений</p>
+        </div>
+    </div>
+
+    <script src="/static/js/theme-switcher.js"></script>
+    <script>
+        // Список доступных направлений
+        const industries = [
+            {id: "healthcare", name: "Здравоохранение", icon: "🏥", color: "#f72585", 
+             features: ["Медицинские записи", "Истории болезней", "Данные пациентов", "Корреляции диагнозов"]},
+            {id: "finance", name: "Финансы и банкинг", icon: "💰", color: "#f8961e",
+             features: ["Транзакции", "Кредитные истории", "Инвестиционные портфели", "Антифрод анализ"]},
+            {id: "retail", name: "Ритейл и E-commerce", icon: "🛍️", color: "#4cc9f0",
+             features: ["Покупательские корзины", "Товарные рекомендации", "Сезонность продаж", "Анализ цен"]},
+            {id: "manufacturing", name: "Промышленность", icon: "🏭", color: "#4361ee",
+             features: ["Производственные циклы", "Данные оборудования", "Контроль качества", "Прогноз поломок"]},
+            {id: "telecom", name: "Телекоммуникации", icon: "📱", color: "#3f37c9",
+             features: ["Данные звонков", "Трафик сети", "Абонентские записи", "Качество связи"]},
+            {id: "transport", name: "Транспорт и логистика", icon: "🚚", color: "#f9844a",
+             features: ["Маршруты доставки", "GPS трекинг", "Расход топлива", "Оптимизация пути"]},
+            {id: "energy", name: "Энергетика", icon: "⚡", color: "#ffd166",
+             features: ["Потребление энергии", "Нагрузка на сеть", "Прогноз генерации", "Аварийные ситуации"]},
+            {id: "education", name: "Образование", icon: "🎓", color: "#06d6a0",
+             features: ["Успеваемость студентов", "Образовательные траектории", "Тесты и оценки", "Анализ курсов"]},
+            {id: "marketing", name: "Маркетинг и реклама", icon: "📊", color: "#118ab2",
+             features: ["Клиентские сегменты", "Эффективность каналов", "ROI кампаний", "Прогноз LTV"]},
+            {id: "hr", name: "HR и рекрутинг", icon: "👥", color: "#ef476f",
+             features: ["Резюме кандидатов", "Оценка сотрудников", "Текучесть кадров", "Карьерные траектории"]}
+        ];
+        
+        let selectedIndustry = null;
+
+        // Заполнить селектор направлений
+        function renderIndustries() {
+            const container = document.getElementById('industrySelector');
+            container.innerHTML = '';
+            
+            industries.forEach(industry => {
+                const card = document.createElement('div');
+                card.className = 'industry-card';
+                card.setAttribute('data-id', industry.id);
+                card.onclick = () => selectIndustry(industry.id);
+                
+                card.innerHTML = `
+                    <div class="industry-icon">${industry.icon}</div>
+                    <div class="industry-name">${industry.name}</div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        // Выбрать направление
+        function selectIndustry(id) {
+            selectedIndustry = industries.find(i => i.id === id);
+            
+            // Убрать выделение со всех карточек
+            document.querySelectorAll('.industry-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Выделить выбранную
+            document.querySelector(`[data-id="${id}"]`).classList.add('selected');
+            
+            // Активировать кнопку далее
+            document.getElementById('nextBtn').disabled = false;
+            
+            // Показать предпросмотр фич
+            showFeaturePreview(selectedIndustry);
+        }
+
+        // Показать предпросмотр фич
+        function showFeaturePreview(industry) {
+            const preview = document.getElementById('featurePreview');
+            const featureList = document.getElementById('featureList');
+            
+            featureList.innerHTML = `
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    ${industry.features.map(f => `<span class="feature-tag" style="background: ${industry.color}20; color: ${industry.color};">✓ ${f}</span>`).join('')}
+                </div>
+                <p style="margin-top: 15px;">Специальные корреляции и алгоритмы для ${industry.name.toLowerCase()} уже активированы в вашем аккаунте!</p>
+            `;
+            
+            preview.style.display = 'block';
+        }
+
+        // Следующий шаг
+        function nextStep() {
+            if (!selectedIndustry) {
+                showMessage('Пожалуйста, выберите направление', 'error');
+                return;
+            }
+            
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'block';
+            
+            // Обновить прогресс
+            document.querySelectorAll('.step')[0].classList.remove('active');
+            document.querySelectorAll('.step')[0].classList.add('completed');
+            document.querySelectorAll('.step')[1].classList.add('active');
+            
+            // Установить выбранную индустрию в форму
+            document.getElementById('industry').value = selectedIndustry.id;
+            
+            // Показать бейдж с выбранной индустрией
+            document.getElementById('selectedIndustryBadge').innerHTML = `
+                ${selectedIndustry.icon} ${selectedIndustry.name}
+            `;
+        }
+
+        // Предыдущий шаг
+        function prevStep() {
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step1').style.display = 'block';
+            
+            // Обновить прогресс
+            document.querySelectorAll('.step')[1].classList.remove('active');
+            document.querySelectorAll('.step')[0].classList.add('active');
+        }
+
+        // Обработка формы регистрации
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const password = document.getElementById('password').value;
+            const confirm = document.getElementById('confirm_password').value;
+            
+            if (password !== confirm) {
+                showMessage('Пароли не совпадают', 'error');
+                return;
+            }
+            
+            const data = {
+                username: document.getElementById('username').value,
+                email: document.getElementById('email').value,
+                full_name: document.getElementById('full_name').value,
+                password: password,
+                industry: document.getElementById('industry').value
+            };
+            
+            try {
+                const response = await fetch('/api/v1/auth/register', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Показать шаг 3
+                    document.getElementById('step2').style.display = 'none';
+                    document.getElementById('step3').style.display = 'block';
+                    
+                    // Обновить прогресс
+                    document.querySelectorAll('.step')[1].classList.remove('active');
+                    document.querySelectorAll('.step')[1].classList.add('completed');
+                    document.querySelectorAll('.step')[2].classList.add('active');
+                } else {
+                    showMessage(result.detail || 'Ошибка регистрации', 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка соединения', 'error');
+            }
+        });
+
+        function showMessage(msg, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.style.display = 'block';
+            messageDiv.className = `alert alert-${type}`;
+            messageDiv.textContent = msg;
+        }
+
+        // Инициализация
+        renderIndustries();
+    </script>
+</body>
+</html>
