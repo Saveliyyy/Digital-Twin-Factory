@@ -186,7 +186,7 @@ async def login(user_data: UserLogin):
     )
     
     # Преобразуем в словарь для ответа
-    user_dict = user.dict()
+    user_dict = user.model_dump()
     
     return Token(
         access_token=access_token,
@@ -215,7 +215,7 @@ async def get_me(current_user: User = Depends(get_current_user)):
     """Получение информации о текущем пользователе"""
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    return UserResponse(**current_user.dict())
+    return UserResponse(**current_user.model_dump())
 
 # ============ API ТАРИФОВ ============
 @app.get("/api/v1/tariffs")

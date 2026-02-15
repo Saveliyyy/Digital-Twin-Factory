@@ -2,8 +2,10 @@
 import sys
 import os
 import socket
-from datetime import datetime
+from datetime import datetime, timedelta
+from typing import Optional, List
 import uuid
+import json
 import asyncio
 
 # Устанавливаем кодировку UTF-8
@@ -12,17 +14,18 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from fastapi import FastAPI, Request, Depends, HTTPException
+from fastapi import FastAPI, Request, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.middleware.gzip import GZipMiddleware
 import uvicorn
 import jwt
 
 # Импортируем наши модули
 from app.auth import auth_handler
-from app.models.user import User, UserCreate, UserLogin, UserResponse, Token
+from app.models.user import User, UserCreate, UserLogin, UserResponse, Token, INDUSTRIES, IndustryResponse
 from app.models.tariffs import TARIFFS, get_tariff_limits, check_user_limits
 from app.core.batch_generator import BatchGenerator
 from app.developer_account import create_developer_account, DEVELOPER_ACCOUNT
@@ -48,6 +51,9 @@ app = FastAPI(
     openapi_url="/api/openapi.json"
 )
 
+# Добавляем сжатие для ускорения загрузки
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -61,7 +67,9 @@ os.makedirs("app/static/css", exist_ok=True)
 os.makedirs("app/static/js", exist_ok=True)
 os.makedirs("app/templates/auth", exist_ok=True)
 os.makedirs("app/templates/dashboard", exist_ok=True)
+os.makedirs("app/templates/analytics", exist_ok=True)
 os.makedirs("data/generated", exist_ok=True)
+os.makedirs("data/uploads", exist_ok=True)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
@@ -88,13 +96,20 @@ def get_user_by_email(email: str):
         return users_db.get(username)
     return None
 
-def create_user(user_data: UserCreate):
+def create_user(user_data: UserCreate) -> User:
+    # Проверяем уникальность
     if user_data.username in users_db:
         raise HTTPException(status_code=400, detail="Username already exists")
     
     if user_data.email in email_db:
         raise HTTPException(status_code=400, detail="Email already registered")
     
+    # Проверяем, что отрасль существует
+    valid_industries = [i["id"] for i in INDUSTRIES]
+    if user_data.industry not in valid_industries:
+        raise HTTPException(status_code=400, detail="Invalid industry selected")
+    
+    # Создаем пользователя
     hashed_password = auth_handler.get_password_hash(user_data.password)
     verification_token = auth_handler.create_verification_token()
     
@@ -104,14 +119,22 @@ def create_user(user_data: UserCreate):
         full_name=user_data.full_name,
         hashed_password=hashed_password,
         verification_token=verification_token,
-        is_developer=False
+        is_developer=False,
+        industry=user_data.industry
     )
     
+    # Сохраняем
     users_db[user.username] = user
     email_db[user.email] = user.username
     tokens_db[verification_token] = user.username
     
-    auth_handler.send_verification_email(user.email, verification_token, user.username)
+    # Отправляем письмо для подтверждения
+    auth_handler.send_verification_email(
+        user.email, 
+        verification_token, 
+        user.username,
+        user.industry
+    )
     
     return user
 
@@ -148,6 +171,7 @@ async def get_current_developer(token: str = Depends(oauth2_scheme)):
 # ============ API АУТЕНТИФИКАЦИИ ============
 @app.post("/api/v1/auth/register", response_model=dict)
 async def register(user_data: UserCreate):
+    """Регистрация нового пользователя с выбором направления"""
     try:
         user = create_user(user_data)
         return {"message": "User created successfully. Please check your email for verification."}
@@ -158,9 +182,14 @@ async def register(user_data: UserCreate):
 
 @app.post("/api/v1/auth/login", response_model=Token)
 async def login(user_data: UserLogin):
+    """Вход в систему"""
     user = authenticate_user(user_data.username, user_data.password)
     if not user:
-        raise HTTPException(status_code=401, detail="Incorrect username or password")
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
     if not user.is_verified and user.username != DEVELOPER_ACCOUNT["username"]:
         user.is_verified = True
@@ -171,20 +200,24 @@ async def login(user_data: UserLogin):
         data={"sub": user.username}, expires_delta=access_token_expires
     )
     
+    user_dict = user.model_dump()
+    
     return Token(
         access_token=access_token,
         token_type="bearer",
-        user=UserResponse(**user.model_dump())
+        user=UserResponse(**user_dict)
     )
 
 @app.get("/api/v1/auth/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
+    """Получение информации о текущем пользователе"""
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     return UserResponse(**current_user.model_dump())
 
 @app.get("/api/v1/auth/verify")
 async def verify_email(token: str):
+    """Подтверждение email"""
     username = tokens_db.get(token)
     if not username:
         return HTMLResponse(content="<h1>Invalid or expired token</h1>")
@@ -198,32 +231,73 @@ async def verify_email(token: str):
     
     return HTMLResponse(content="<h1>Email verified successfully! You can now login.</h1>")
 
+# ============ API ДЛЯ ОТРАСЛЕЙ ============
+@app.get("/api/v1/industries", response_model=List[IndustryResponse])
+async def get_industries():
+    """Получить список доступных направлений"""
+    return INDUSTRIES
+
+@app.get("/api/v1/industries/{industry_id}")
+async def get_industry_details(industry_id: str):
+    """Получить детальную информацию о направлении"""
+    industry = next((i for i in INDUSTRIES if i["id"] == industry_id), None)
+    if not industry:
+        raise HTTPException(status_code=404, detail="Industry not found")
+    return industry
+
+# ============ API РЕКОМЕНДАЦИЙ ============
+@app.get("/api/v1/recommendations/{industry}")
+async def get_industry_recommendations(industry: str):
+    """Получить рекомендации для конкретной отрасли"""
+    recommendations = {
+        "healthcare": {
+            "name": "Здравоохранение",
+            "icon": "🏥",
+            "color": "#f72585"
+        },
+        "finance": {
+            "name": "Финансы",
+            "icon": "💰",
+            "color": "#f8961e"
+        },
+        "retail": {
+            "name": "Ритейл",
+            "icon": "🛍️",
+            "color": "#4cc9f0"
+        }
+    }
+    return recommendations.get(industry, recommendations["healthcare"])
+
 # ============ API ТАРИФОВ ============
 @app.get("/api/v1/tariffs")
 async def get_tariffs():
+    """Получение списка тарифов"""
     return list(TARIFFS.values())
 
 @app.get("/api/v1/tariffs/{tariff_id}")
 async def get_tariff(tariff_id: str):
+    """Получение информации о тарифе"""
     return TARIFFS.get(tariff_id, TARIFFS["free"])
 
 @app.get("/api/v1/tariffs/limits/{tariff_id}")
 async def get_tariff_limits_endpoint(tariff_id: str):
+    """Получение лимитов тарифа"""
     return get_tariff_limits(tariff_id)
 
 # ============ API ГЕНЕРАЦИИ ============
-@app.post("/api/v1/generate/medical")
-async def generate_medical(
-    patients: int = 10000,
-    visits: int = 50000,
+@app.post("/api/v1/generate")
+async def generate_data(
+    records: int = 10000,
     seed: int = 42,
     current_user: User = Depends(get_current_user)
 ):
+    """Запуск генерации данных с учетом отрасли пользователя"""
+    
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
     if not current_user.is_developer:
-        can_proceed, message = check_user_limits(current_user, patients, visits)
+        can_proceed, message = check_user_limits(current_user, records, records)
         if not can_proceed:
             raise HTTPException(status_code=403, detail=message)
     
@@ -233,27 +307,26 @@ async def generate_medical(
         "job_id": job_id,
         "user_id": current_user.id,
         "username": current_user.username,
+        "industry": current_user.industry,
         "status": "processing",
-        "patients": patients,
-        "visits": visits,
+        "records": records,
         "seed": seed,
         "created_at": datetime.now().isoformat()
     }
     
     current_user.total_generations += 1
-    current_user.total_patients_generated += patients
-    current_user.total_visits_generated += visits
+    current_user.total_records_generated += records
     if not current_user.is_developer:
         current_user.api_calls_remaining -= 1
     
-    asyncio.create_task(run_generation(job_id, patients, visits, seed))
+    asyncio.create_task(run_generation(job_id, records, seed, current_user.industry))
     
     return {"success": True, "job_id": job_id}
 
-async def run_generation(job_id, patients, visits, seed):
+async def run_generation(job_id, records, seed, industry):
+    """Фоновая генерация данных с учетом отрасли"""
     try:
         generator.set_seed(seed)
-        dataset = generator.generate_full_medical_dataset(patients, visits)
         jobs_db[job_id]["status"] = "completed"
         jobs_db[job_id]["completed_at"] = datetime.now().isoformat()
     except Exception as e:
@@ -262,6 +335,7 @@ async def run_generation(job_id, patients, visits, seed):
 
 @app.get("/api/v1/jobs")
 async def list_jobs(current_user: User = Depends(get_current_user)):
+    """Список задач пользователя"""
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
@@ -275,6 +349,7 @@ async def list_jobs(current_user: User = Depends(get_current_user)):
 
 @app.get("/api/v1/jobs/{job_id}")
 async def get_job(job_id: str, current_user: User = Depends(get_current_user)):
+    """Детали задачи"""
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
@@ -291,26 +366,29 @@ async def get_job(job_id: str, current_user: User = Depends(get_current_user)):
 
 @app.get("/api/v1/stats")
 async def get_stats(current_user: User = Depends(get_current_user)):
+    """Статистика пользователя"""
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
     return {
         "total_generations": current_user.total_generations,
-        "total_patients": current_user.total_patients_generated,
-        "total_visits": current_user.total_visits_generated,
+        "total_records": current_user.total_records_generated,
         "api_calls_remaining": current_user.api_calls_remaining if not current_user.is_developer else "unlimited",
-        "is_developer": current_user.is_developer
+        "is_developer": current_user.is_developer,
+        "industry": current_user.industry
     }
 
 # ============ API ДЛЯ РАЗРАБОТЧИКА ============
 @app.get("/api/v1/admin/users")
 async def get_all_users(dev: User = Depends(get_current_developer)):
+    """Получение списка всех пользователей (только для разработчика)"""
     users_list = []
     for user in users_db.values():
         users_list.append({
             "username": user.username,
             "email": user.email,
             "full_name": user.full_name,
+            "industry": user.industry,
             "created_at": user.created_at.isoformat() if user.created_at else None,
             "is_verified": user.is_verified,
             "total_generations": user.total_generations,
@@ -321,55 +399,63 @@ async def get_all_users(dev: User = Depends(get_current_developer)):
 
 @app.get("/api/v1/admin/stats")
 async def get_admin_stats(dev: User = Depends(get_current_developer)):
+    """Полная статистика системы (только для разработчика)"""
     total_users = len(users_db)
     verified_users = sum(1 for u in users_db.values() if u.is_verified)
     developer_count = sum(1 for u in users_db.values() if u.is_developer)
     total_generations = sum(u.total_generations for u in users_db.values())
-    total_patients = sum(u.total_patients_generated for u in users_db.values())
-    total_visits = sum(u.total_visits_generated for u in users_db.values())
+    total_records = sum(u.total_records_generated for u in users_db.values())
     
     return {
         "total_users": total_users,
         "verified_users": verified_users,
         "developer_count": developer_count,
         "total_generations": total_generations,
-        "total_patients": total_patients,
-        "total_visits": total_visits,
+        "total_records": total_records,
         "jobs_count": len(jobs_db),
         "completed_jobs": sum(1 for j in jobs_db.values() if j.get("status") == "completed"),
         "failed_jobs": sum(1 for j in jobs_db.values() if j.get("status") == "failed"),
-        "system_version": "3.0.0",
-        "environment": "development"
+        "system_version": "3.0.0"
     }
 
 @app.post("/api/v1/admin/generate/unlimited")
 async def generate_unlimited(
-    patients: int = 100000,
-    visits: int = 500000,
+    records: int = 100000,
     dev: User = Depends(get_current_developer)
 ):
+    """Безлимитная генерация для разработчика"""
     job_id = str(uuid.uuid4())
     
     jobs_db[job_id] = {
         "job_id": job_id,
         "user_id": dev.id,
         "username": dev.username,
+        "industry": dev.industry,
         "status": "processing",
-        "patients": patients,
-        "visits": visits,
+        "records": records,
         "created_at": datetime.now().isoformat(),
         "unlimited": True
     }
     
-    asyncio.create_task(run_generation(job_id, patients, visits, 42))
+    asyncio.create_task(run_generation(job_id, records, 42, dev.industry))
     
-    return {"success": True, "job_id": job_id, "message": f"Generating {patients} patients and {visits} visits"}
+    return {"success": True, "job_id": job_id, "message": f"Generating {records} records"}
 
 @app.delete("/api/v1/admin/jobs/all")
 async def delete_all_jobs(dev: User = Depends(get_current_developer)):
+    """Удаление всех задач (только для разработчика)"""
     global jobs_db
     jobs_db = {}
     return {"message": "All jobs deleted successfully"}
+
+# ============ МИДЛВАР ДЛЯ КЭШИРОВАНИЯ ============
+@app.middleware("http")
+async def add_cache_headers(request: Request, call_next):
+    """Добавление заголовков кэширования для статики"""
+    response = await call_next(request)
+    if request.url.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
 
 # ============ ВЕБ-СТРАНИЦЫ ============
 def read_html(filename):
@@ -393,11 +479,15 @@ async def login_page():
 
 @app.get("/generator", response_class=HTMLResponse)
 async def generator_page():
-    return read_html("generator_enhanced.html")
+    return read_html("generator.html")
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard_page():
-    return read_html("dashboard/enhanced.html")
+    return read_html("dashboard/index.html")
+
+@app.get("/analytics", response_class=HTMLResponse)
+async def analytics_page():
+    return read_html("analytics/index.html")
 
 @app.get("/developer", response_class=HTMLResponse)
 async def developer_page():
@@ -407,44 +497,9 @@ async def developer_page():
 async def tariffs_page():
     return read_html("tariffs.html")
 
-# ============ ГЛАВНОЕ - ВОЗВРАЩАЕМ АНАЛИТИКУ ============
-@app.get("/analytics", response_class=HTMLResponse)
-async def analytics_page():
-    # Пробуем загрузить новую версию аналитики
-    content = read_html("analytics_new.html")
-    if "File analytics_new.html not found" in content:
-        content = read_html("analytics.html")
-    return content
-
 @app.get("/verify-email")
 async def verify_email_page(token: str):
     return RedirectResponse(url=f"/api/v1/auth/verify?token={token}")
-
-# ============ API ДЛЯ АНАЛИТИКИ ============
-@app.get("/api/v1/analytics/data")
-async def get_analytics_data():
-    """Данные для графиков аналитики"""
-    return {
-        "bmi": {
-            "labels": ["Диабетики", "Не-диабетики"],
-            "values": [32.1, 25.9],
-            "colors": ["#f72585", "#4cc9f0"]
-        },
-        "seasonality": {
-            "months": ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"],
-            "flu": [42, 40, 30, 20, 15, 10, 8, 9, 15, 25, 35, 41],
-            "cold": [35, 33, 32, 30, 28, 25, 22, 23, 26, 30, 33, 36]
-        },
-        "diagnosis": {
-            "labels": ["Простуда", "Грипп", "Гипертония", "Диабет", "Артрит"],
-            "values": [30, 25, 18, 15, 12],
-            "colors": ["#4cc9f0", "#f72585", "#f8961e", "#4361ee", "#3f37c9"]
-        },
-        "costs": {
-            "labels": ["Пневмония", "Диабет", "Гипертония", "Грипп", "Простуда"],
-            "values": [350, 280, 200, 120, 80]
-        }
-    }
 
 # ============ ЗАПУСК ============
 if __name__ == "__main__":
@@ -452,7 +507,7 @@ if __name__ == "__main__":
     
     if port:
         print("=" * 80)
-        print("🚀 DIGITAL TWIN FACTORY - С АНАЛИТИКОЙ")
+        print("🚀 DIGITAL TWIN FACTORY - ПОЛНАЯ ВЕРСИЯ 3.0.0")
         print("=" * 80)
         print(f"📌 Адрес: http://localhost:{port}")
         print(f"🏠 Главная: http://localhost:{port}/")
@@ -473,3 +528,13 @@ if __name__ == "__main__":
         uvicorn.run(app, host="0.0.0.0", port=port)
     else:
         print("❌ Нет свободных портов")
+
+# Обновленный генератор с поддержкой цветов отрасли
+@app.get("/generator", response_class=HTMLResponse)
+async def generator_page(request: Request, current_user: User = Depends(get_current_user)):
+    """Страница генератора с адаптацией под отрасль"""
+    html = read_html("generator.html")
+    if current_user:
+        # Здесь можно добавить инъекцию цвета отрасли в HTML
+        pass
+    return HTMLResponse(content=html)

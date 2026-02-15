@@ -186,7 +186,7 @@ async def login(user_data: UserLogin):
     return Token(
         access_token=access_token,
         token_type="bearer",
-        user=UserResponse(**user.dict())
+        user=UserResponse(**user.model_dump())
     )
 
 @app.get("/api/v1/auth/verify")
@@ -210,7 +210,7 @@ async def get_me(current_user: User = Depends(get_current_user)):
     """Получение информации о текущем пользователе"""
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    return UserResponse(**current_user.dict())
+    return UserResponse(**current_user.model_dump())
 
 # ============ API ТАРИФОВ ============
 @app.get("/api/v1/tariffs")

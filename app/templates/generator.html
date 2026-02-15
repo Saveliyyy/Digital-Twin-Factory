@@ -1,25 +1,764 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <title>Генератор</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Twin Factory - Генератор</title>
+    <link rel="stylesheet" href="/static/css/dark-theme.css">
+    <link rel="stylesheet" href="/static/css/theme-switcher.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Стили для прогресс-бара */
+        .progress-container {
+            margin: 30px 0;
+            padding: 20px;
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            display: none;
+        }
+        
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .progress-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .progress-percent {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-color, #667eea);
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+            height: 24px;
+            background: var(--bg-secondary);
+            border-radius: 50px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-color, #667eea), var(--accent-secondary, #764ba2));
+            border-radius: 50px;
+            width: 0%;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .progress-bar-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.3),
+                transparent
+            );
+            animation: shimmer 1.5s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .progress-status {
+            margin-top: 15px;
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            border-left: 4px solid var(--accent-color, #667eea);
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-icon {
+            font-size: 1.2rem;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        
+        .status-text {
+            flex: 1;
+        }
+        
+        .progress-steps {
+            display: flex;
+            justify-content: space-between;
+            margin: 30px 0 20px;
+            position: relative;
+        }
+        
+        .progress-steps::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--border-color);
+            z-index: 1;
+        }
+        
+        .step {
+            position: relative;
+            z-index: 2;
+            background: var(--bg-card);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            border: 2px solid var(--border-color);
+            transition: all 0.3s;
+        }
+        
+        .step.active {
+            background: linear-gradient(135deg, var(--accent-color, #667eea), var(--accent-secondary, #764ba2));
+            border-color: transparent;
+            color: white;
+            box-shadow: 0 0 20px var(--accent-color, #667eea);
+        }
+        
+        .step.completed {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
+        }
+        
+        .step-label {
+            position: absolute;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            white-space: nowrap;
+            color: var(--text-muted);
+        }
+        
+        .generator-hero {
+            background: linear-gradient(135deg, var(--accent-color, #667eea), var(--accent-secondary, #764ba2));
+            padding: 40px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+            color: white;
+        }
+        
+        .param-panel {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .param-group {
+            margin-bottom: 25px;
+        }
+        
+        .param-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .param-label {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .param-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--accent-color, #667eea);
+        }
+        
+        .param-slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(90deg, var(--accent-color, #667eea), var(--accent-secondary, #764ba2));
+            -webkit-appearance: none;
+        }
+        
+        .param-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--accent-color, #667eea);
+            cursor: pointer;
+            box-shadow: 0 0 15px var(--accent-color, #667eea);
+            transition: transform 0.2s;
+            border: 2px solid white;
+        }
+        
+        .param-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        
+        .quick-presets {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .preset-btn {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .preset-btn:hover {
+            background: linear-gradient(135deg, var(--accent-color, #667eea), var(--accent-secondary, #764ba2));
+            color: white;
+            border-color: transparent;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-color, #667eea), var(--accent-secondary, #764ba2));
+            color: white;
+            flex: 2;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px var(--accent-color, #667eea);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            flex: 1;
+        }
+        
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, var(--accent-color, #667eea), var(--accent-secondary, #764ba2));
+            color: white;
+            border-color: transparent;
+        }
+        
+        .result-message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 12px;
+            display: none;
+            animation: slideIn 0.5s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .result-success {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid #10b981;
+            color: #10b981;
+        }
+        
+        .result-error {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #ef4444;
+            color: #ef4444;
+        }
+        
+        .download-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            display: none;
+            animation: slideIn 0.5s ease;
+        }
+        
+        .download-options {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .format-badge {
+            background: linear-gradient(135deg, var(--accent-color, #667eea), var(--accent-secondary, #764ba2));
+            color: white;
+            padding: 8px 16px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .format-badge:hover {
+            transform: scale(1.05);
+        }
+        
+        .stats-preview {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .stat-preview-item {
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            border-left: 4px solid var(--accent-color, #667eea);
+        }
+        
+        .stat-preview-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--accent-color, #667eea);
+        }
+        
+        .stat-preview-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+    </style>
 </head>
-<body>
+<body class="dark-theme">
     <div class="container">
+        <!-- Навигация -->
         <nav class="navbar">
             <a href="/" class="navbar-brand">🏭 Digital Twin Factory</a>
             <ul class="navbar-menu">
                 <li class="navbar-item"><a href="/">Главная</a></li>
                 <li class="navbar-item active"><a href="/generator">Генератор</a></li>
-                <li class="navbar-item"><a href="/jobs">Задачи</a></li>
+                <li class="navbar-item"><a href="/dashboard">Личный кабинет</a></li>
                 <li class="navbar-item"><a href="/analytics">Аналитика</a></li>
+                <li class="navbar-item"><a href="/tariffs">Тарифы</a></li>
+                <li class="navbar-item"><a href="/developer">👨‍💻 Разработчик</a></li>
+                <li class="navbar-item"><a href="#" onclick="logout()">Выход</a></li>
+                <li class="navbar-item">
+                    <div class="theme-switch-wrapper">
+                        <label class="theme-switch">
+                            <input type="checkbox" id="theme-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </li>
             </ul>
         </nav>
-        
-        <div class="card">
-            <h1 class="card-title">⚙️ Генератор данных</h1>
-            <p>Страница в разработке</p>
+
+        <!-- Hero секция -->
+        <div class="generator-hero">
+            <h1 style="font-size: 2.5rem; margin-bottom: 15px;">🚀 Генератор данных</h1>
+            <p style="font-size: 1.2rem; opacity: 0.9;">Создавайте реалистичные датасеты за секунды</p>
+        </div>
+
+        <!-- Панель параметров -->
+        <div class="param-panel">
+            <h2 style="margin-bottom: 25px; color: var(--accent-color);">⚙️ Параметры генерации</h2>
+            
+            <!-- Быстрые пресеты -->
+            <div class="quick-presets">
+                <span class="preset-btn" onclick="setPreset('small')">Маленький (1k)</span>
+                <span class="preset-btn" onclick="setPreset('medium')">Средний (10k)</span>
+                <span class="preset-btn" onclick="setPreset('large')">Большой (50k)</span>
+                <span class="preset-btn" onclick="setPreset('xlarge')">Огромный (100k)</span>
+            </div>
+
+            <!-- Количество записей -->
+            <div class="param-group">
+                <div class="param-header">
+                    <span class="param-label">📊 Количество записей</span>
+                    <span class="param-value" id="recordsValue">10,000</span>
+                </div>
+                <input type="range" id="recordsSlider" class="param-slider" min="100" max="100000" value="10000" step="100">
+                <div class="param-limits" style="display: flex; justify-content: space-between; margin-top: 5px; color: var(--text-muted);">
+                    <span>100</span>
+                    <span>100,000</span>
+                </div>
+            </div>
+
+            <!-- Seed -->
+            <div class="param-group">
+                <div class="param-header">
+                    <span class="param-label">🎲 Seed (воспроизводимость)</span>
+                    <span class="param-value" id="seedValue">42</span>
+                </div>
+                <input type="range" id="seedSlider" class="param-slider" min="1" max="9999" value="42" step="1">
+            </div>
+
+            <!-- Кнопки действий -->
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="startGeneration()" id="generateBtn">
+                    ⚡ ЗАПУСТИТЬ ГЕНЕРАЦИЮ
+                </button>
+                <button class="btn btn-secondary" onclick="resetParams()">
+                    🔄 СБРОС
+                </button>
+            </div>
+
+            <!-- Прогресс бар -->
+            <div id="progressContainer" class="progress-container">
+                <div class="progress-header">
+                    <div class="progress-title">
+                        <span>⏳</span>
+                        <span id="progressTitle">Генерация данных</span>
+                    </div>
+                    <div class="progress-percent" id="progressPercent">0%</div>
+                </div>
+                
+                <!-- Шаги прогресса -->
+                <div class="progress-steps">
+                    <div class="step" id="step1">
+                        1
+                        <span class="step-label">Подготовка</span>
+                    </div>
+                    <div class="step" id="step2">
+                        2
+                        <span class="step-label">Генерация</span>
+                    </div>
+                    <div class="step" id="step3">
+                        3
+                        <span class="step-label">Обработка</span>
+                    </div>
+                    <div class="step" id="step4">
+                        4
+                        <span class="step-label">Сохранение</span>
+                    </div>
+                </div>
+                
+                <!-- Основной прогресс-бар -->
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="progressBar"></div>
+                </div>
+                
+                <!-- Статус -->
+                <div class="progress-status">
+                    <span class="status-icon" id="statusIcon">⚙️</span>
+                    <span class="status-text" id="statusText">Инициализация генератора...</span>
+                </div>
+            </div>
+
+            <!-- Сообщение о результате -->
+            <div id="resultMessage" class="result-message"></div>
+
+            <!-- Секция скачивания -->
+            <div id="downloadSection" class="download-section">
+                <h3 style="color: var(--accent-color); margin-bottom: 15px;">📥 Результат готов</h3>
+                <p id="downloadInfo" style="color: var(--text-muted); margin-bottom: 15px;"></p>
+                <div class="download-options">
+                    <span class="format-badge" onclick="downloadFile('json')">📄 JSON</span>
+                    <span class="format-badge" onclick="downloadFile('csv')">📊 CSV</span>
+                    <span class="format-badge" onclick="downloadFile('excel')">📗 Excel</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Предпросмотр статистики -->
+        <div class="stats-preview">
+            <div class="stat-preview-item">
+                <div class="stat-preview-value" id="previewRecords">0</div>
+                <div class="stat-preview-label">Записей</div>
+            </div>
+            <div class="stat-preview-item">
+                <div class="stat-preview-value" id="previewSize">0 MB</div>
+                <div class="stat-preview-label">Размер</div>
+            </div>
+            <div class="stat-preview-item">
+                <div class="stat-preview-value" id="previewTime">0 с</div>
+                <div class="stat-preview-label">Время</div>
+            </div>
         </div>
     </div>
+
+    <script>
+        let currentUser = null;
+        let currentJobId = null;
+        let progressInterval = null;
+        let startTime = null;
+
+        // Инициализация
+        window.onload = function() {
+            initSliders();
+            checkAuth();
+            updatePreview();
+        };
+
+        function initSliders() {
+            const recordsSlider = document.getElementById('recordsSlider');
+            const seedSlider = document.getElementById('seedSlider');
+
+            recordsSlider.addEventListener('input', function(e) {
+                document.getElementById('recordsValue').textContent = Number(e.target.value).toLocaleString();
+                updatePreview();
+            });
+
+            seedSlider.addEventListener('input', function(e) {
+                document.getElementById('seedValue').textContent = e.target.value;
+            });
+        }
+
+        function updatePreview() {
+            const records = document.getElementById('recordsSlider').value;
+            document.getElementById('previewRecords').textContent = Number(records).toLocaleString();
+            document.getElementById('previewSize').textContent = (records * 0.001).toFixed(1) + ' MB';
+            document.getElementById('previewTime').textContent = (records / 1000).toFixed(1) + ' с';
+        }
+
+        function setPreset(size) {
+            const recordsSlider = document.getElementById('recordsSlider');
+            switch(size) {
+                case 'small':
+                    recordsSlider.value = 1000;
+                    break;
+                case 'medium':
+                    recordsSlider.value = 10000;
+                    break;
+                case 'large':
+                    recordsSlider.value = 50000;
+                    break;
+                case 'xlarge':
+                    recordsSlider.value = 100000;
+                    break;
+            }
+            document.getElementById('recordsValue').textContent = Number(recordsSlider.value).toLocaleString();
+            updatePreview();
+        }
+
+        function resetParams() {
+            document.getElementById('recordsSlider').value = 10000;
+            document.getElementById('seedSlider').value = 42;
+            document.getElementById('recordsValue').textContent = '10,000';
+            document.getElementById('seedValue').textContent = '42';
+            updatePreview();
+        }
+
+        async function checkAuth() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+        }
+
+        function startGeneration() {
+            // Показываем прогресс-бар
+            document.getElementById('progressContainer').style.display = 'block';
+            document.getElementById('resultMessage').style.display = 'none';
+            document.getElementById('downloadSection').style.display = 'none';
+            document.getElementById('generateBtn').disabled = true;
+            
+            startTime = Date.now();
+            let progress = 0;
+            
+            // Сброс шагов
+            document.querySelectorAll('.step').forEach(step => {
+                step.classList.remove('active', 'completed');
+            });
+            document.getElementById('step1').classList.add('active');
+            
+            progressInterval = setInterval(() => {
+                progress += 1;
+                
+                if (progress <= 100) {
+                    // Обновляем прогресс-бар
+                    document.getElementById('progressBar').style.width = progress + '%';
+                    document.getElementById('progressPercent').innerHTML = progress + '%';
+                    
+                    // Обновляем статус и шаги в зависимости от прогресса
+                    if (progress < 20) {
+                        document.getElementById('statusText').innerHTML = 'Подготовка генератора...';
+                        document.getElementById('statusIcon').innerHTML = '⚙️';
+                    } else if (progress < 40) {
+                        document.getElementById('statusText').innerHTML = 'Генерация данных...';
+                        document.getElementById('statusIcon').innerHTML = '📊';
+                        updateSteps(1, 2);
+                    } else if (progress < 60) {
+                        document.getElementById('statusText').innerHTML = 'Применение корреляций...';
+                        document.getElementById('statusIcon').innerHTML = '🔄';
+                        updateSteps(2, 3);
+                    } else if (progress < 80) {
+                        document.getElementById('statusText').innerHTML = 'Обработка результатов...';
+                        document.getElementById('statusIcon').innerHTML = '⚡';
+                        updateSteps(3, 4);
+                    } else if (progress < 95) {
+                        document.getElementById('statusText').innerHTML = 'Сохранение файла...';
+                        document.getElementById('statusIcon').innerHTML = '💾';
+                    } else {
+                        document.getElementById('statusText').innerHTML = 'Завершение...';
+                        document.getElementById('statusIcon').innerHTML = '✅';
+                    }
+                    
+                    // Обновляем заголовок прогресса
+                    document.getElementById('progressTitle').innerHTML = `Генерация ${progress}%`;
+                }
+                
+                if (progress >= 100) {
+                    completeGeneration();
+                }
+            }, 50);
+        }
+
+        function updateSteps(currentStep, nextStep) {
+            for (let i = 1; i <= 4; i++) {
+                const step = document.getElementById(`step${i}`);
+                if (i < currentStep) {
+                    step.classList.add('completed');
+                    step.classList.remove('active');
+                } else if (i === currentStep) {
+                    step.classList.add('active');
+                    step.classList.remove('completed');
+                } else {
+                    step.classList.remove('active', 'completed');
+                }
+            }
+        }
+
+        function completeGeneration() {
+            clearInterval(progressInterval);
+            
+            // Отмечаем все шаги как завершенные
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById(`step${i}`).classList.add('completed');
+                document.getElementById(`step${i}`).classList.remove('active');
+            }
+            
+            // Обновляем статус
+            document.getElementById('statusText').innerHTML = 'Генерация успешно завершена!';
+            document.getElementById('statusIcon').innerHTML = '🎉';
+            document.getElementById('progressTitle').innerHTML = 'Готово!';
+            
+            // Показываем секцию скачивания
+            setTimeout(() => {
+                document.getElementById('progressContainer').style.display = 'none';
+                document.getElementById('downloadSection').style.display = 'block';
+                document.getElementById('generateBtn').disabled = false;
+                
+                const records = document.getElementById('recordsSlider').value;
+                const endTime = Date.now();
+                const duration = ((endTime - startTime) / 1000).toFixed(1);
+                
+                document.getElementById('downloadInfo').innerHTML = `
+                    ✅ Сгенерировано ${Number(records).toLocaleString()} записей за ${duration} секунд<br>
+                    Форматы для скачивания:
+                `;
+            }, 500);
+        }
+
+        function downloadFile(format) {
+            const records = document.getElementById('recordsSlider').value;
+            const seed = document.getElementById('seedSlider').value;
+            
+            // Создаем тестовые данные
+            const data = {
+                generated_at: new Date().toISOString(),
+                records: records,
+                seed: seed,
+                data: Array.from({ length: 100 }, (_, i) => ({
+                    id: i + 1,
+                    value: Math.random() * 100
+                }))
+            };
+            
+            let content = '';
+            let filename = `generated_data_${new Date().getTime()}`;
+            let mimeType = '';
+            
+            switch(format) {
+                case 'json':
+                    content = JSON.stringify(data, null, 2);
+                    mimeType = 'application/json';
+                    filename += '.json';
+                    break;
+                case 'csv':
+                    content = 'id,value\n';
+                    data.data.forEach(item => {
+                        content += `${item.id},${item.value}\n`;
+                    });
+                    mimeType = 'text/csv';
+                    filename += '.csv';
+                    break;
+                case 'excel':
+                    alert('Excel формат будет доступен в следующем обновлении');
+                    return;
+            }
+            
+            const blob = new Blob([content], { type: mimeType });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        }
+    </script>
 </body>
 </html>

@@ -835,7 +835,7 @@
         }
 
         // Обновление списка задач каждые 5 секунд
-        setInterval(loadRecentJobs, 5000);
+        setInterval(loadRecentJobs, 30000);
     </script>
 </body>
 </html>
